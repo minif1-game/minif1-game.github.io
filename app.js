@@ -1191,6 +1191,7 @@ function audioInit() {
       eng = { o, o2, o3, f, gn, gear: 1 };
       // crowd bed
       const cs = AC.createBufferSource(); cs.buffer = noiseBuf; cs.loop = true; const cf = AC.createBiquadFilter(); cf.type = 'bandpass'; cf.frequency.value = 900; cf.Q.value = .6; const cg = AC.createGain(); cg.gain.value = 0; cs.connect(cf).connect(cg).connect(master); cs.start(); crowd = cg;
+      loadReal();
     }
     AC.resume();
   } catch (e) {}
@@ -1201,6 +1202,18 @@ function noiseHit(dur, freq, vol, q) { if (!AC) return; try { const s = AC.creat
 function whoosh() { if (!AC) return; try { const s = AC.createBufferSource(); s.buffer = noiseBuf; const f = AC.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 2; const g = AC.createGain(); g.gain.value = .0001; s.connect(f).connect(g).connect(master); const t = AC.currentTime; f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(3000, t + .6); g.gain.exponentialRampToValueAtTime(.35, t + .25); g.gain.exponentialRampToValueAtTime(.001, t + .9); s.start(); s.stop(t + 1); } catch (e) {} }
 function cheer() { if (!AC) return; noiseHit(2.4, 1100, .5, .5); setTimeout(() => noiseHit(1.8, 1500, .35, .7), 250); [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, .35, .08, 'triangle'), 200 + i * 140)); }
 function wrench() { if (!AC) return; for (let k = 0; k < 6; k++) setTimeout(() => noiseHit(.07, 2600, .35, 4), k * 70); }
+
+/* ---------- real race recording (Freesound, CC0: "Long Beach Indy Car" by Josh Herman) ---------- */
+const REAL = { buf: null, amb: null, last: 0, prevD: 99 };
+function loadReal() {
+  if (REAL.p) return; REAL.p = fetch('https://cdn.freesound.org/previews/235/235261_46029-hq.mp3').then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); }).then(b => new Promise((res, rej) => AC.decodeAudioData(b, res, rej))).then(buf => {
+    REAL.buf = buf; const s = AC.createBufferSource(); s.buffer = buf; s.loop = true; s.loopStart = 29.5; s.loopEnd = 36.4; const g = AC.createGain(); g.gain.value = 0; s.connect(g).connect(master); s.start(0, 29.5); REAL.amb = g;
+  }).catch(() => {});
+}
+function passBy(vol, pan) {
+  if (!REAL.buf || !AC) return; const now = performance.now(); if (now - REAL.last < 2200) return; REAL.last = now;
+  try { const s = AC.createBufferSource(); s.buffer = REAL.buf; s.playbackRate.value = .95 + Math.random() * .12; const g = AC.createGain(); g.gain.value = vol; let node = s.connect(g); if (AC.createStereoPanner) { const p = AC.createStereoPanner(); p.pan.value = pan; node = node.connect(p); } node.connect(master); s.start(0, 20.6, 4.8); } catch (e) {}
+}
 let heliA = null;
 function heliSound(level) {
   if (!AC || !noiseBuf) return;
@@ -1378,7 +1391,7 @@ function tick(dt) {
     }
   }
   if (running) collide(R.cars);
-  if (eng && AC) { try { const v = R.me.v / TOP, G = [0, .2, .36, .5, .63, .76, .88, 2], kmh = v; let gi = 1; while (gi < 7 && kmh > G[gi]) gi++; if (gi !== eng.gear) { if (gi > eng.gear) noiseHit(.06, 500, .08, 2); eng.gear = gi; } const lo = G[gi - 1], hi = G[gi], rpm = clamp((kmh - lo) / Math.max(.01, hi - lo), 0, 1), t = AC.currentTime, base = 70 + gi * 9 + rpm * (120 + gi * 18) + (R.me.boosting ? 30 : 0); eng.o.frequency.setTargetAtTime(base, t, .03); eng.o2.frequency.setTargetAtTime(base * 1.005, t, .03); eng.o3.frequency.setTargetAtTime(base / 2, t, .03); eng.f.frequency.setTargetAtTime(700 + rpm * 1800 + v * 600, t, .05); eng.gn.gain.setTargetAtTime(R.over || !R.started ? (R.started ? 0 : .02) : .03 + v * .035, t, .1); if (crowd) crowd.gain.setTargetAtTime(R.over ? 0 : .015 + (R.me.idx < 120 || R.me.idx > R.tr.n - 120 ? .04 : 0), t, .4); } catch (e) {} }
+  if (eng && AC) { try { const v = R.me.v / TOP, G = [0, .2, .36, .5, .63, .76, .88, 2], kmh = v; let gi = 1; while (gi < 7 && kmh > G[gi]) gi++; if (gi !== eng.gear) { if (gi > eng.gear) noiseHit(.06, 500, .08, 2); eng.gear = gi; } const lo = G[gi - 1], hi = G[gi], rpm = clamp((kmh - lo) / Math.max(.01, hi - lo), 0, 1), t = AC.currentTime, base = 70 + gi * 9 + rpm * (120 + gi * 18) + (R.me.boosting ? 30 : 0); eng.o.frequency.setTargetAtTime(base, t, .03); eng.o2.frequency.setTargetAtTime(base * 1.005, t, .03); eng.o3.frequency.setTargetAtTime(base / 2, t, .03); eng.f.frequency.setTargetAtTime(700 + rpm * 1800 + v * 600, t, .05); eng.gn.gain.setTargetAtTime(R.over || !R.started ? (R.started ? 0 : .02) : .03 + v * .035, t, .1); if (crowd) crowd.gain.setTargetAtTime(R.over ? 0 : (REAL.buf ? .3 : 1) * (.015 + (R.me.idx < 120 || R.me.idx > R.tr.n - 120 ? .04 : 0)), t, .4); if (REAL.amb) REAL.amb.gain.setTargetAtTime(R.over || !R.started ? 0 : st.cam >= 3 ? .1 : .2, t, .5); } catch (e) {} }
   // peers
   for (const p of st.peers) {
     if (p.sameTab || !p.presence || p.presence.trk !== st.track || !(p.presence.st === 'run' || p.presence.st === 'grid' || p.presence.st === 'done')) continue;
@@ -1436,6 +1449,7 @@ function draw3(dt) {
   if (st.cam === 3 || st.cam === 4) R.cam = { x: tx, y: ty, z: tz, h: R.cam.h }; else if (st.cam !== 1) R.cam = { x: tx, y: ty, z: tz, h: R.cam.h }; else { R.cam.x += (tx - R.cam.x) * k; R.cam.y += (ty - R.cam.y) * k; R.cam.z += (tz - R.cam.z) * k; }
   const shake = me.v > TOP * .8 ? (Math.random() - .5) * .04 * sp : 0;
   cam.position.set(R.cam.x, R.cam.y + shake, R.cam.z); cam.lookAt(lx, ly, lz);
+  if (REAL.buf && R.started && st.cam < 3) { let md = 99, mc = null; for (const c of R.cars) { if (st.cam !== 1 && c === me) continue; const d = Math.hypot(c.x * U - R.cam.x, c.y * U - R.cam.z); if (d < md) { md = d; mc = c; } } if (md < 9 && REAL.prevD >= 9 && mc && mc.v > TOP * .45) { const rx = mc.x * U - R.cam.x, rz = mc.y * U - R.cam.z, fwd = Math.atan2(lz - R.cam.z, lx - R.cam.x), side = Math.sin(Math.atan2(rz, rx) - fwd); passBy(st.cam === 1 ? .75 : .45, clamp(side, -.8, .8)); } REAL.prevD = md; }
   if (Math.abs(cam.fov - fov) > .2) { cam.fov += (fov - cam.fov) * .1; cam.updateProjectionMatrix(); }
   W.sun.position.set(px + 30, 60, pz + 20); W.sun.target.position.set(px, 0, pz);
   if (rain.parent) { const a = rain.geometry.attributes.position.array; for (let i = 1; i < a.length; i += 6) { a[i] -= dt * 45; a[i + 3] -= dt * 45; if (a[i] < -12) { a[i] += 45; a[i + 3] += 45; } } rain.geometry.attributes.position.needsUpdate = true; rain.position.set(cam.position.x, cam.position.y + 10, cam.position.z); }
@@ -1482,6 +1496,7 @@ function endRace() {
   for (const k in keys) keys[k] = 0; $('#game').classList.remove('on'); $('#tpick').hidden = true;
   if (eng) try { eng.gn.gain.value = 0; } catch (e) {}
   if (heliA) try { heliA.g.gain.value = 0; heliA.lg.gain.value = 0; } catch (e) {}
+  if (REAL.amb) try { REAL.amb.gain.value = 0; } catch (e) {}
   $('#game').classList.remove('heli');
   presence({ st: 'lobby', go: null, fin: null }); renderHome();
   const v = location.hash.slice(1) || 'home'; if (v === 'home') startLobby(); if (v === 'garage') startGarage();
