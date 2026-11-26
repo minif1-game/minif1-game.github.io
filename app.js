@@ -1611,6 +1611,8 @@ $('#auReg').addEventListener('submit', async e => {
   e.preventDefault(); const err = $('#rgErr'), name = $('#rgName').value.trim().slice(0, 16), u = normUser($('#rgUser').value), btn = e.target.querySelector('button[type=submit]');
   if (name.length < 2) { err.textContent = 'Pilotun adını yaz.'; return; }
   if (!validUser(u)) { err.textContent = 'İstifadəçi adı 3–16 simvol olsun: kiçik latın hərfləri, rəqəm və _'; return; }
+  if (window.claude && window.claude.mail && !st.db) { err.textContent = 'Bağlantı qurulur…'; await Promise.race([connP, new Promise(r => setTimeout(r, 9000))]); err.textContent = ''; }
+  if (window.claude && window.claude.mail && !st.db) { err.textContent = 'İnternet bağlantısı yoxdur. Bir az sonra yenə yoxla.'; btn.disabled = false; return; }
   const MAIL = mailOn(), email = MAIL ? $('#rgMail').value.trim().toLowerCase() : '';
   if (MAIL && !/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email)) { err.textContent = 'Düzgün email yaz (təsdiq linki ora gedəcək).'; return; }
   btn.disabled = true; err.textContent = '';
@@ -1702,7 +1704,7 @@ async function regState(u) {
   try { const p = await st.db.doc('pending/' + u).get(); if (p.exists) out.verified = !!(p.data() || {}).verified; } catch (e) {}
   return out;
 }
-let waitT = 0;
+let waitT = 0, connP = Promise.resolve();
 function showWait(u) {
   $('#auth').hidden = false; ['#auLogin', '#auReg', '#auCode', '.au-tabs', '#auGuest', '#auAdmin'].forEach(q => { const e = $(q); if (e) e.hidden = true; }); $('#auWait').hidden = false;
   const poll = async () => {
@@ -1753,5 +1755,5 @@ function needAuth() { if (ME) return false; if (LS.get('guestRaces', 0) >= 1) { 
   box.addEventListener('click', e => { if (!go.hidden && e.target !== go) enter(); });
 }
 if (matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window || navigator.maxTouchPoints > 0) $('#game').classList.add('touchy');
-route(); renderHome(); connect(); setMute(MUTE); $('#gSnd').classList.toggle('off', MUTE);
+route(); renderHome(); connP = connect(); if (window.claude && window.claude.mail) $('#rgMailL').hidden = false; setMute(MUTE); $('#gSnd').classList.toggle('off', MUTE);
 }
