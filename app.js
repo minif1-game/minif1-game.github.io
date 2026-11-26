@@ -366,7 +366,7 @@ function startLobby() {
     scene.add(new THREE.HemisphereLight('#ffd0d0', '#200006', .55));
     const key = new THREE.SpotLight('#ffffff', 1.4, 40, .55, .6); key.position.set(3, 10, 6); key.castShadow = true; key.shadow.mapSize.set(1024, 1024); scene.add(key);
     const rim = new THREE.PointLight('#ff2010', 1.3, 12); rim.position.set(-3, 3, -4); scene.add(rim);
-    const floor = new THREE.Mesh(new THREE.CircleGeometry(6, 64), new THREE.MeshStandardMaterial({ color: '#141416', metalness: .25, roughness: .5, transparent: true, opacity: .72 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(6, 64), new THREE.MeshStandardMaterial({ color: '#141416', metalness: .25, roughness: .5 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
     const ringM = new THREE.MeshBasicMaterial({ color: '#ff1a10' });
     for (const [r0, y] of [[3.4, .01], [4.6, .01]]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(r0, .025, 6, 120), ringM); ring.rotation.x = Math.PI / 2; ring.position.y = y; scene.add(ring); }
     const glow = new THREE.Mesh(new THREE.RingGeometry(3.2, 3.7, 96), new THREE.MeshBasicMaterial({ color: '#ff2a1a', transparent: true, opacity: .18, side: THREE.DoubleSide })); glow.rotation.x = -Math.PI / 2; glow.position.y = .012; scene.add(glow);
