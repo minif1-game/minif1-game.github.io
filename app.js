@@ -100,19 +100,24 @@ function city(tr) {
   const sea = d.sea ? { side: d.sea, x: d.sea === 'right' ? mxx + 150 : 0, y: d.sea === 'bottom' ? mxy + 150 : 0 } : null;
   const land = (x, y) => !(sea && sea.side === 'bottom' && y > sea.y - 40) && !(sea && sea.side === 'right' && x > sea.x - 40);
   const C = { sea, land, parks: [], blds: [], trees: [], stands: [], tower: null, boats: [], waves: [] };
-  const nPark = d.park ? 16 : 6;
-  for (let i = 0; i < nPark; i++) { const x = R() * tr.W, y = R() * tr.H, w = 140 + R() * 180, h = 120 + R() * 160; if (!land(x + w / 2, y + h / 2) || tr.near(x + w / 2, y + h / 2, Math.max(w, h) / 2 + HW + 50)) continue; C.parks.push({ x, y, w, h }); for (let k = 0; k < 10; k++) C.trees.push({ x: x + 16 + R() * (w - 32), y: y + 16 + R() * (h - 32), r: 10 + R() * 10 }); }
+  const parkP = d.park ? .26 : .09;
   const roofs = night ? ['#4a5162', '#3f4656', '#565e70', '#5d5446'] : ['#efe3c8', '#e6d1a6', '#f4f1ea', '#d9b98a', '#c97f5a', '#e9e6df', '#bfc7cf'];
   for (let bx = 90; bx < tr.W; bx += 190) for (let by = 90; by < tr.H; by += 190) {
-    const parts = 1 + (R() * 3 | 0), x0 = bx + 22, y0 = by + 22, bw = 146, bh = 146;
+    const x0 = bx + 22, y0 = by + 22, bw = 146, bh = 146, ccx = x0 + bw / 2, ccy = y0 + bh / 2;
+    if (!land(ccx, ccy)) continue;
+    if (R() < parkP) { // a whole block becomes a park with trees (never on the streets)
+      C.parks.push({ x: x0, y: y0, w: bw, h: bh });
+      const nt = 5 + (R() * 5 | 0); for (let k = 0; k < nt; k++) { const x = x0 + 18 + R() * (bw - 36), y = y0 + 18 + R() * (bh - 36); if (land(x, y)) C.trees.push({ x, y, r: 10 + R() * 9 }); }
+      continue;
+    }
+    const parts = 1 + (R() * 3 | 0);
     for (let k = 0; k < parts; k++) {
       const w = parts === 1 ? bw : bw / (k === 0 ? 1.7 : 2.4) * (.8 + R() * .3), h = parts === 1 ? bh : bh * (.45 + R() * .5);
       const x = x0 + (k === 1 ? bw - w : 0), y = y0 + (k === 2 ? bh - h : k === 1 ? R() * (bh - h) : 0);
       const cx = x + w / 2, cy = y + h / 2, col = roofs[R() * roofs.length | 0], ht = 30 + R() * R() * 140;
-      if (!land(cx, cy) || !land(x, y) || !land(x + w, y + h) || tr.near(cx, cy, Math.hypot(w, h) / 2 + HW + 36)) continue;
+      if (!land(cx, cy) || !land(x, y) || !land(x + w, y + h) || tr.near(cx, cy, Math.hypot(w, h) / 2 + HW + 40)) continue;
       C.blds.push({ x, y, w, h, col, ht, win: Array.from({ length: 3 }, () => [x + 12 + R() * (w - 34), y + 12 + R() * (h - 34), R()]) });
     }
-    for (let k = 0; k < 2; k++) { const x = bx + R() * 190, y = by - 4 + (R() < .5 ? 0 : 8); if (land(x, y) && !tr.near(x, y, HW + 40)) C.trees.push({ x, y, r: 9 }); }
   }
   if (sea) {
     for (let i = 0; i < 60; i++) { const t = i / 60; C.trees.push({ x: sea.side === 'bottom' ? t * tr.W : sea.x - 20, y: sea.side === 'bottom' ? sea.y - 20 : t * tr.H, r: 13, palm: true }); }
@@ -125,6 +130,8 @@ function city(tr) {
     const j = (i + n) % n, p = tr.pts[j], a = tr.th[j];
     for (const side of [-1, 1]) { const off = HW + 70, x = p.x - Math.sin(a) * side * off, y = p.y + Math.cos(a) * side * off; if (tr.near(x, y, HW + 52)) continue; C.stands.push({ x, y, a, side, crowd: Array.from({ length: 6 }, () => ['#fff', '#edb40b', '#00b5e2', '#ff4fa0', '#2fe06b', '#e10600'][R() * 6 | 0]) }); }
   }
+  const clearOf = (x, y, r) => !tr.near(x, y, HW + 34 + r) && !C.stands.some(s => Math.hypot(s.x - x, s.y - y) < 70) && !C.blds.some(b => x > b.x - 6 && x < b.x + b.w + 6 && y > b.y - 6 && y < b.y + b.h + 6);
+  C.trees = C.trees.filter(t => clearOf(t.x, t.y, t.palm ? 36 : 26));
   return tr.city = C;
 }
 function paintGround(g, tr, flat, clear) {
@@ -280,7 +287,7 @@ function cleanRec(x) {
   return o;
 }
 function mergeSum(a, b) {
-  const r = { nm: a.nm || b.nm, base: a.base, col: a.col, num: a.num, races: a.races + b.races, wins: a.wins + b.wins, med: [0, 1, 2].map(i => a.med[i] + b.med[i]), pts: {}, best: {} };
+  const r = { nm: a.nm || b.nm, base: a.base, col: a.col, av: a.av || b.av, num: a.num, races: a.races + b.races, wins: a.wins + b.wins, med: [0, 1, 2].map(i => a.med[i] + b.med[i]), pts: {}, best: {} };
   for (const t of TRACKS) { r.pts[t.id] = Math.max(a.pts[t.id] || 0, b.pts[t.id] || 0); const x = a.best[t.id], y = b.best[t.id]; if (x || y) r.best[t.id] = x && y ? Math.min(x, y) : x || y; }
   return r;
 }
@@ -375,11 +382,12 @@ function lobCar() {
   L3.car = makeCar3D({ model: g.model, color: g.color, color2: g.color2, pattern: g.pattern, helm: g.helmet, num: g.num, tyre: g.tyre });
   L3.car.traverse(o => { if (o.isMesh) o.castShadow = true; }); L3.car.scale.setScalar(1); L3.scene.add(L3.car);
 }
-function coinsOf() { const s = standings(); return s.reduce((a, r) => a + r.total * 100 + r.med[0] * 500 + r.med[1] * 300 + r.med[2] * 200 + r.races * 50, 0); }
+function coinsOf() { const s = [myStats()]; return s.reduce((a, r) => a + r.total * 100 + r.med[0] * 500 + r.med[1] * 300 + r.med[2] * 200 + r.races * 50, 0); }
 function renderLobbyUI() {
   const pk = lobPilot(), tr = TRACKS.find(t => t.id === st.track) || TRACKS[0], mode = { clash: 'Menecer', easy: 'Sürücü · asan', pro: 'Sürücü · pro' }[st.diff] || 'Menecer';
   $('#lobPilots').innerHTML = '';
   $('#lobTrack').textContent = tr.n; $('#lobTrackName').textContent = tr.n;
+  $$('#lobModeSw button').forEach(b => b.classList.toggle('on', (b.dataset.d === 'clash') === (st.diff === 'clash')));
   $('#lobMode').textContent = mode + ' · ' + (tr.model ? Math.max(1, Math.round(st.laps / 2)) : st.laps) + ' dövrə';
   const cv = $('#lobThumb'); requestAnimationFrame(() => thumb(cv, getTrack(tr.id)));
   updTop();
@@ -388,10 +396,11 @@ function updTop() {
   const pk = lobPilot(), s = standings(), r = myStats();
   $('#gAva').src = avOf(ME); $('#gName').textContent = ME ? ME.name : 'Qonaq';
   $('#gLvl').textContent = 'Səviyyə ' + (1 + Math.floor(r.races / 3));
-  $('#gCoin').textContent = coinsOf().toLocaleString('az'); $('#gStar').textContent = s.reduce((a, x) => a + x.total, 0);
+  $('#gCoin').textContent = coinsOf().toLocaleString('az'); $('#gStar').textContent = r.total;
 }
 
 $('#lobGo').addEventListener('click', () => { audioInit(); if (st.diff === 'clash') { const others = st.peers.filter(p => !p.sameTab && p.presence && p.presence.trk === st.track && p.presence.st === 'lobby').length; if (!others) { showPrerace(); return; } } startRace(Date.now() + 3400, st.laps); });
+$('#lobModeSw').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; click(); st.diff = b.dataset.d === 'clash' ? 'clash' : (st.diff === 'pro' ? 'pro' : 'easy'); LS.set('diff2', st.diff); renderLobbyUI(); });
 $('#gSnd').addEventListener('click', () => { audioInit(); setMute(!MUTE); $('#gSnd').classList.toggle('off', MUTE); });
 function renderHome() {
   const s = standings().sort((a, b) => b.total - a.total || b.wins - a.wins);
@@ -722,7 +731,11 @@ function loadHeli() {
       const ax = s.x <= s.y && s.x <= s.z ? 'x' : s.y <= s.z ? 'y' : 'z'; rotors.push({ pv, ax, main: Math.max(s.x, s.y, s.z) > 3 * Math.min(Math.max(s.x, s.y), Math.max(s.y, s.z)) ? 0 : 1, size: Math.max(s.x, s.y, s.z) });
     }
     const big = Math.max(...rotors.map(r => r.size)); rotors.forEach(r => r.main = r.size === big);
-    const P = prepGeneric(m, { nose: '-z', len: 13 }); P.rotors = rotors; return P;
+    const P = prepGeneric(m, { nose: '-z', len: 13 }); P.rotors = rotors;
+    const gim = new THREE.Group(), ball = new THREE.Mesh(new THREE.SphereGeometry(.42, 16, 12), new THREE.MeshStandardMaterial({ color: '#2b2e35', metalness: .6, roughness: .35 })), lens = new THREE.Mesh(new THREE.CylinderGeometry(.18, .22, .3, 14), new THREE.MeshStandardMaterial({ color: '#0a0c10', metalness: .8, roughness: .2 }));
+    lens.rotation.z = Math.PI / 2; lens.position.x = .38; gim.add(ball, lens); gim.position.set(3.4, .25, 0); P.holder.add(gim); P.gimbal = gim;
+    const led = new THREE.Mesh(new THREE.SphereGeometry(.12, 8, 6), new THREE.MeshBasicMaterial({ color: '#ff2a2a' })); led.position.set(-5.8, 2.1, 0); P.holder.add(led); P.led = led;
+    return P;
   }).then(r => HELI = r);
 }
 function heliUpdate(R, dt) {
@@ -731,8 +744,8 @@ function heliUpdate(R, dt) {
   const lead = R.clash ? R.me : R.cars.reduce((x, y) => pr(y) > pr(x) ? y : x);
   const lx = lead.x * U, lz = lead.y * U, la = lead.a, t = performance.now() / 1000;
   // orbit-ish station keeping: high, to the side and a bit behind, slowly drifting around the car like a real camera ship
-  const ang = la + Math.PI * .62 + Math.sin(t * .07) * .9, dist = 34 + Math.sin(t * .11) * 8;
-  const tx = lx + Math.cos(ang) * dist, tz = lz + Math.sin(ang) * dist, ty = 30 + Math.sin(t * .13) * 4;
+  const ang = la + Math.PI * .62 + Math.sin(t * .07) * .9, dist = 58 + Math.sin(t * .11) * 10;
+  const tx = lx + Math.cos(ang) * dist, tz = lz + Math.sin(ang) * dist, ty = 44 + Math.sin(t * .13) * 5;
   const k = 1 - Math.exp(-dt * .9);
   const ox = H.p.x, oz = H.p.z; H.p.x += (tx - H.p.x) * k; H.p.y += (ty - H.p.y) * k; H.p.z += (tz - H.p.z) * k;
   const vx = (H.p.x - ox) / Math.max(dt, 1e-3), vz = (H.p.z - oz) / Math.max(dt, 1e-3), v = Math.hypot(vx, vz);
@@ -741,6 +754,8 @@ function heliUpdate(R, dt) {
   const o = H.obj; o.position.set(H.p.x, H.p.y + Math.sin(t * 1.3) * .25, H.p.z); o.rotation.set(0, -H.yaw, 0);
   o.rotateZ(-clamp(v / 60, 0, .22)); o.rotateX(Math.sin(t * .9) * .03);
   for (const r of H.rotors) r.pv.rotation[r.ax] += dt * (r.main ? 34 : 70);
+  if (H.gimbal) { o.updateMatrixWorld(true); const gp = new THREE.Vector3(); H.gimbal.getWorldPosition(gp); H.gimbal.lookAt(H.look.x, 0, H.look.z); H.gimbal.rotateY(-Math.PI / 2); }
+  if (H.led) H.led.visible = (t % 1) < .15;
   // gimbal: smoothed look target with tiny operator lag
   const kl = 1 - Math.exp(-dt * 3.2); H.look.x += (lx + Math.cos(la) * 6 - H.look.x) * kl; H.look.z += (lz + Math.sin(la) * 6 - H.look.z) * kl;
   H.lead = lead;
@@ -1112,6 +1127,14 @@ function noiseHit(dur, freq, vol, q) { if (!AC) return; try { const s = AC.creat
 function whoosh() { if (!AC) return; try { const s = AC.createBufferSource(); s.buffer = noiseBuf; const f = AC.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 2; const g = AC.createGain(); g.gain.value = .0001; s.connect(f).connect(g).connect(master); const t = AC.currentTime; f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(3000, t + .6); g.gain.exponentialRampToValueAtTime(.35, t + .25); g.gain.exponentialRampToValueAtTime(.001, t + .9); s.start(); s.stop(t + 1); } catch (e) {} }
 function cheer() { if (!AC) return; noiseHit(2.4, 1100, .5, .5); setTimeout(() => noiseHit(1.8, 1500, .35, .7), 250); [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, .35, .08, 'triangle'), 200 + i * 140)); }
 function wrench() { if (!AC) return; for (let k = 0; k < 6; k++) setTimeout(() => noiseHit(.07, 2600, .35, 4), k * 70); }
+let heliA = null;
+function heliSound(level) {
+  if (!AC || !noiseBuf) return;
+  try {
+    if (!heliA) { const s = AC.createBufferSource(); s.buffer = noiseBuf; s.loop = true; const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 260; const g = AC.createGain(); g.gain.value = 0; const lfo = AC.createOscillator(); lfo.frequency.value = 13; const lg = AC.createGain(); lg.gain.value = 0; lfo.connect(lg).connect(g.gain); s.connect(f).connect(g).connect(master); s.start(); lfo.start(); heliA = { g, lg }; }
+    const v = race && race.started ? level * .16 : 0, t = AC.currentTime; heliA.g.gain.setTargetAtTime(v, t, .3); heliA.lg.gain.setTargetAtTime(v * .9, t, .3);
+  } catch (e) {}
+}
 function click() { beep(1400, .04, .05, 'square'); }
 document.addEventListener('click', e => { if (AC && e.target.closest('.btn,.chips button,.tabs button,.tk,.hs,.sw button,.ty button,.livs button')) click(); });
 
@@ -1129,8 +1152,8 @@ $$('.touch button').forEach(b => { const k = b.dataset.k; const dn = e => { e.pr
 $('#bPit').addEventListener('click', () => requestPit());
 { const b = $('#bGas'), dn = e => { e.preventDefault(); keys.gas = 1; b.classList.add('dn'); try { b.setPointerCapture(e.pointerId); } catch (x) {} }, up = () => { keys.gas = 0; b.classList.remove('dn'); }; b.addEventListener('pointerdown', dn); b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up); b.addEventListener('contextmenu', e => e.preventDefault()); }
 $('#bMute').addEventListener('click', () => { audioInit(); setMute(!MUTE); });
-const CAMS = ['Arxadan', 'TV', 'Kokpit', 'Helikopter'];
-function cycleCam() { st.cam = (st.cam + 1) % 4; LS.set('cam', st.cam); $('#camT').textContent = CAMS[st.cam]; }
+const CAMS = ['Arxadan', 'TV', 'Kokpit', 'Helikopter', 'Helikopterə bax'];
+function cycleCam() { st.cam = (st.cam + 1) % 5; LS.set('cam', st.cam); $('#camT').textContent = CAMS[st.cam]; }
 $('#bCam').addEventListener('click', cycleCam);
 function requestPit() { if (!race || !race.started || race.me.done || race.me.pit) return; if (race.clash) { openTyrePick(race.me); return; } race.me.pit = { t: 0, ph: 'in' }; }
 let race = null, raceRaf = 0, R3 = null;
@@ -1172,8 +1195,8 @@ async function startRace(go, laps, opts) {
   if (wx === 'rain') { W.scene.add(X.rain); objs.push(X.rain); W.roadMat.roughness = .3; W.roadMat.metalness = .35; W.roadMat.color.set('#8a8f99'); } else { W.roadMat.roughness = .82; W.roadMat.metalness = 0; W.roadMat.color.set('#ffffff'); }
   W.scene.background = wx === 'rain' ? W.skyRain : W.skyDay; W.hemi.intensity = tr.def.model ? 1.0 : tr.def.night ? .55 : wx === 'rain' ? .6 : wx === 'cloud' ? .75 : .85; W.sun.intensity = tr.def.model ? .7 : tr.def.night ? .55 : wx === 'rain' ? .35 : wx === 'cloud' ? .6 : 1.05; W.scene.fog.color.set(wx === 'rain' ? '#a3adb8' : tr.def.night ? '#1b2340' : '#cfe6f5'); W.scene.fog.near = wx === 'rain' ? 40 : 90; W.scene.fog.far = wx === 'rain' ? 190 : 330;
   race = { tr, cars, me, team, go, laps, easy, clash, wx, W, X, objs, peers: new Map(), finished: [], cam: null, lastP: 0, lastHud: 0, lit: -1, key };
-  if (HELI) { const ho = new THREE.Group(); ho.add(HELI.holder); HELI.holder.traverse(o => { if (o.isMesh) o.castShadow = true; }); W.scene.add(ho); objs.push(ho); const p0 = me.x * U, q0 = me.y * U; race.heli = { obj: ho, rotors: HELI.rotors, p: new THREE.Vector3(p0 + 30, 34, q0 + 20), look: new THREE.Vector3(p0, 0, q0), yaw: 0 }; }
-  $('#game').classList.add('on'); $('#game').classList.toggle('pro', !easy); $('#game').classList.toggle('clash', clash); if (clash) { st.cam = 3; $('#camT').textContent = CAMS[3]; } $('#res').classList.remove('on'); $('#lights').hidden = false; $('#go').hidden = true; $('#pitbox').hidden = true; $('#hint').hidden = true;
+  if (HELI) { const ho = new THREE.Group(); ho.add(HELI.holder); HELI.holder.traverse(o => { if (o.isMesh) o.castShadow = true; }); W.scene.add(ho); objs.push(ho); const p0 = me.x * U, q0 = me.y * U; race.heli = { obj: ho, rotors: HELI.rotors, gimbal: HELI.gimbal, led: HELI.led, p: new THREE.Vector3(p0 + 30, 34, q0 + 20), look: new THREE.Vector3(p0, 0, q0), yaw: 0 }; }
+  $('#game').classList.add('on'); $('#game').classList.toggle('pro', !easy); $('#game').classList.toggle('clash', clash); if (clash) { st.cam = 3; $('#camT').textContent = CAMS[3]; } else { if (st.cam >= 3) st.cam = 0; $('#camT').textContent = CAMS[st.cam]; } $('#res').classList.remove('on'); $('#lights').hidden = false; $('#go').hidden = true; $('#pitbox').hidden = true; $('#hint').hidden = true;
   $$('#lights i').forEach(i => i.classList.remove('lit')); W.lamps.forEach(l => l.material.color.set('#2a0505'));
   if (clash) buildTeamUI(team);
   $('#lbName').textContent = clash ? pilotName().toLocaleUpperCase('az') + ' TEAM' : me.num + ' ' + me.name; $('#dcName').textContent = me.num + ' ' + me.name.toLocaleUpperCase('az');
@@ -1320,7 +1343,7 @@ function draw3(dt) {
   const R = race, { r, cam, rain } = R.X, W = R.W, cv = r.domElement, w = cv.clientWidth, h = cv.clientHeight;
   const pr = Math.min(R.X.mobile ? 1.5 : 2, devicePixelRatio || 1);
   if (cv.width !== Math.round(w * pr) || cv.height !== Math.round(h * pr)) { r.setPixelRatio(pr); r.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
-  heliUpdate(R, dt); if (R.heli) R.heli.obj.visible = st.cam !== 3;
+  heliUpdate(R, dt); if (R.heli) R.heli.obj.visible = st.cam !== 3; $('#game').classList.toggle('heli', st.cam === 3); heliSound(st.cam === 3 ? .35 : st.cam === 4 ? 1 : .12);
   const all = [...R.cars, ...R.peers.values()];
   for (const c of all) if (c.obj) { animCar(c.obj, c, dt); c.tag.visible = c !== R.me || st.cam !== 2; if (c.me) c.obj.visible = c !== R.me || st.cam !== 2; }
   const me = R.me, px = me.x * U, pz = me.y * U, fx = Math.cos(me.a), fz = Math.sin(me.a), sp = me.v / TOP;
@@ -1332,8 +1355,10 @@ function draw3(dt) {
   if (st.cam === 0) { tx = px - hx * (8 + sp * 1.5); ty = 2.8; tz = pz - hz * (8 + sp * 1.5); lx = px + hx * 6; ly = 1; lz = pz + hz * 6; }
   else if (st.cam === 1) { tx = px - hx * 18 - hz * 14; ty = 22; tz = pz - hz * 18 + hx * 14; lx = px + hx * 4; ly = 0; lz = pz + hz * 4; fov = 50; }
   else if (st.cam === 2) { tx = px + fx * .35; ty = 1.02; tz = pz + fz * .35; lx = px + fx * 20; ly = .6; lz = pz + fz * 20; fov = 72 + sp * 10; }
-  else { const H = R.heli; if (H) { const t = performance.now() / 1000; tx = H.p.x; ty = H.p.y - 1.6; tz = H.p.z; lx = H.look.x + Math.sin(t * .7) * .35; ly = .3; lz = H.look.z + Math.cos(t * .6) * .35; const d = Math.hypot(tx - lx, ty, tz - lz); fov = clamp(2 * Math.atan(16 / d) * 180 / Math.PI, 14, 40) + Math.sin(t * .23) * 2; } else { tx = px; ty = 40; tz = pz + 20; lx = px; ly = 0; lz = pz; fov = 40; } }
-  if (st.cam === 3) R.cam = { x: tx, y: ty, z: tz, h: R.cam.h }; else if (st.cam !== 1) R.cam = { x: tx, y: ty, z: tz, h: R.cam.h }; else { R.cam.x += (tx - R.cam.x) * k; R.cam.y += (ty - R.cam.y) * k; R.cam.z += (tz - R.cam.z) * k; }
+  else { const H = R.heli; if (H) { const t = performance.now() / 1000; tx = H.p.x; ty = H.p.y - 1.6; tz = H.p.z; lx = H.look.x + Math.sin(t * .7) * .35; ly = .3; lz = H.look.z + Math.cos(t * .6) * .35; const d = Math.hypot(tx - lx, ty, tz - lz); fov = clamp(2 * Math.atan(22 / d) * 180 / Math.PI, 16, 42) + Math.sin(t * .23) * 2; } else { tx = px; ty = 40; tz = pz + 20; lx = px; ly = 0; lz = pz; fov = 40; } }
+  if (st.cam === 4 && R.heli) { const H = R.heli, t = performance.now() / 1000, hy = H.yaw, bx = -Math.cos(hy), bz = -Math.sin(hy), sx = -Math.sin(hy), sz = Math.cos(hy), sw = Math.sin(t * .15);
+    tx = H.p.x + bx * 11 + sx * 7 * sw; ty = H.p.y + 3.2; tz = H.p.z + bz * 11 + sz * 7 * sw; lx = H.p.x * .72 + H.look.x * .28; ly = H.p.y * .62; lz = H.p.z * .72 + H.look.z * .28; fov = 58; }
+  if (st.cam === 3 || st.cam === 4) R.cam = { x: tx, y: ty, z: tz, h: R.cam.h }; else if (st.cam !== 1) R.cam = { x: tx, y: ty, z: tz, h: R.cam.h }; else { R.cam.x += (tx - R.cam.x) * k; R.cam.y += (ty - R.cam.y) * k; R.cam.z += (tz - R.cam.z) * k; }
   const shake = me.v > TOP * .8 ? (Math.random() - .5) * .04 * sp : 0;
   cam.position.set(R.cam.x, R.cam.y + shake, R.cam.z); cam.lookAt(lx, ly, lz);
   if (Math.abs(cam.fov - fov) > .2) { cam.fov += (fov - cam.fov) * .1; cam.updateProjectionMatrix(); }
@@ -1381,6 +1406,8 @@ function endRace() {
   race.objs.forEach(o => race.W.scene.remove(o)); race = null;
   for (const k in keys) keys[k] = 0; $('#game').classList.remove('on'); $('#tpick').hidden = true;
   if (eng) try { eng.gn.gain.value = 0; } catch (e) {}
+  if (heliA) try { heliA.g.gain.value = 0; heliA.lg.gain.value = 0; } catch (e) {}
+  $('#game').classList.remove('heli');
   presence({ st: 'lobby', go: null, fin: null }); renderHome();
   const v = location.hash.slice(1) || 'home'; if (v === 'home') startLobby(); if (v === 'garage') startGarage();
 }
@@ -1392,26 +1419,28 @@ $('#tolobby').addEventListener('click', () => { endRace(); location.hash = 'race
 /* ---------- table ---------- */
 let ttab = 'champ', recTrack = 'baku';
 $('#ttabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { ttab = b.dataset.t; renderTable(); } });
-function who(r) { if (false) return `<span class="who"><img src="${PILOTS[r.av].poster}" alt="">${esc(r.nm)}</span>`; if (r.base !== 'custom') return `<span class="who"><img src="${PILOTS[r.base].poster}" alt="">${esc(r.nm)}</span>`; return `<span class="who"><i style="background:${esc(r.col)}">${esc((r.nm || '?').slice(0, 1).toUpperCase())}</i>${esc(r.nm || 'Pilot')}</span>`; }
+function avR(r) { if (PRIV_AV[r.av]) return PRIV_AV[r.av]; if (r.base !== 'custom' && PILOTS[r.base]) return PILOTS[r.base].poster; return avLetter(r.nm, HEX.test(r.av || '') ? r.av : r.col); }
+function who(r) { return `<span class="who"><img src="${avR(r)}" alt="">${esc(r.nm || 'Pilot')}</span>`; }
 function renderTable() {
   $$('#ttabs button').forEach(b => b.classList.toggle('on', b.dataset.t === ttab));
-  const s = standings(), B = $('#tbody');
-  $('#tnote').textContent = st.db ? (st.canWrite ? 'Nəticələr bütün oyunçular üçün canlı yenilənir.' : 'Bu link ilə yalnız baxa bilirsən; nəticələrin bu cihazda saxlanır.') : 'Nəticələr bu cihazda saxlanır.';
-  if (!s.length) { B.innerHTML = '<div class="empty">Hələ yarış yoxdur. İlk yarışı qazan və cədvəldə birinci ol!</div>'; return; }
-  if (ttab === 'champ') {
-    s.sort((a, b) => b.total - a.total || b.wins - a.wins);
-    const top = s.slice(0, 3), order = [top[1], top[0], top[2]];
-    B.innerHTML = `<div class="champ">${order.map((r, i) => r ? `<div class="pod p${[2, 1, 3][i]}"><span class="disc d${[2, 1, 3][i]}">${[2, 1, 3][i]}</span><b>${esc(r.nm)}</b><span>${r.total} xal</span></div>` : '<div></div>').join('')}</div>
-    <table class="tbl"><thead><tr><th>Yer</th><th>Pilot</th>${TRACKS.map(t => `<th class="n hide">${t.n.split(' ')[0]}</th>`).join('')}<th class="n">Xal</th></tr></thead><tbody>${s.map((r, i) => `<tr class="c${i + 1}"><td class="p">${i + 1}</td><td>${who(r)}</td>${TRACKS.map(t => `<td class="n hide">${r.pts[t.id] || '·'}</td>`).join('')}<td class="n"><b>${r.total}</b></td></tr>`).join('')}</tbody></table>`;
-  } else if (ttab === 'med') {
-    s.sort((a, b) => b.med[0] - a.med[0] || b.med[1] - a.med[1] || b.med[2] - a.med[2]);
-    B.innerHTML = `<table class="tbl"><thead><tr><th>Yer</th><th>Pilot</th>${[1, 2, 3].map(i => `<th class="n"><span class="disc d${i}" style="display:inline-grid;width:24px;height:24px">${i}</span></th>`).join('')}<th class="n hide">Yarış</th></tr></thead><tbody>${s.map((r, i) => `<tr class="c${i + 1}"><td class="p">${i + 1}</td><td>${who(r)}</td><td class="n">${r.med[0]}</td><td class="n">${r.med[1]}</td><td class="n">${r.med[2]}</td><td class="n hide">${r.races}</td></tr>`).join('')}</tbody></table>`;
-  } else {
-    const rows = s.filter(r => r.best[recTrack]).sort((a, b) => a.best[recTrack] - b.best[recTrack]);
-    B.innerHTML = `<div class="tabs" id="rtabs">${TRACKS.map(t => `<button data-r="${t.id}" class="${t.id === recTrack ? 'on' : ''}">${t.n}</button>`).join('')}</div>` + (rows.length ? `<table class="tbl"><thead><tr><th>Yer</th><th>Pilot</th><th class="n">Ən yaxşı dövrə</th></tr></thead><tbody>${rows.map((r, i) => `<tr class="c${i + 1}"><td class="p">${i + 1}</td><td>${who(r)}</td><td class="n">${fmt(r.best[recTrack])}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">Bu trekdə hələ rekord yoxdur.</div>');
-    $('#rtabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { recTrack = b.dataset.r; renderTable(); } });
-  }
+  const s = standings(), B = $('#tbody'), meN = ME ? pilotName() : null;
+  $('#tnote').textContent = st.db ? (st.canWrite ? 'Nəticələr bütün oyunçular üçün canlı yenilənir.' : 'Bu link ilə yalnız baxa bilirsən; nəticələrin bu cihazda saxlanır.') : 'Onlayn bağlantı yoxdur: nəticələr bu cihazda saxlanır.';
+  if (!s.length) { B.innerHTML = '<div class="lg-empty"><b>🏁</b><p>Hələ yarış yoxdur.<br>İlk yarışı qazan və cədvəldə birinci ol!</p><a class="lg-go" href="#home">Yarışa başla</a></div>'; return; }
+  let rows, val, sub, unit;
+  if (ttab === 'champ') { rows = s.slice().sort((a, b) => b.total - a.total || b.wins - a.wins); val = r => r.total; unit = 'xal'; sub = r => `${r.races} yarış · ${r.wins} qələbə`; }
+  else if (ttab === 'med') { rows = s.slice().sort((a, b) => b.med[0] - a.med[0] || b.med[1] - a.med[1] || b.med[2] - a.med[2]); val = r => r.med[0] + r.med[1] + r.med[2]; unit = 'medal'; sub = r => `<span class="md g">${r.med[0]}</span><span class="md s">${r.med[1]}</span><span class="md b">${r.med[2]}</span>`; }
+  else { rows = s.filter(r => r.best[recTrack]).sort((a, b) => a.best[recTrack] - b.best[recTrack]); val = r => fmt(r.best[recTrack]); unit = ''; sub = () => TRACKS.find(t => t.id === recTrack).n; }
+  const meI = meN ? rows.findIndex(r => r.nm === meN) : -1, me = meI >= 0 ? rows[meI] : null;
+  const card = me ? `<div class="lg-me"><div class="lg-rank"><small>Sənin yerin</small><b>#${meI + 1}</b></div><img src="${avOf(ME)}" alt=""><div class="lg-mn"><b>${esc(meN)}</b><small>${ttab === 'med' ? sub(me) : sub(me)}</small></div><div class="lg-pts"><b>${val(me)}</b><small>${unit}</small></div></div>` : '';
+  const recTabs = ttab === 'rec' ? `<div class="lg-trk" id="rtabs">${TRACKS.map(t => `<button data-r="${t.id}" class="${t.id === recTrack ? 'on' : ''}">${t.n}</button>`).join('')}</div>` : '';
+  if (!rows.length) { B.innerHTML = card + recTabs + '<div class="lg-empty"><p>Bu trekdə hələ rekord yoxdur. İlk rekordu sən qoy!</p></div>'; bindRec(); return; }
+  const top = rows.slice(0, 3), order = [[top[1], 2], [top[0], 1], [top[2], 3]];
+  const pod = `<div class="lg-pod">${order.map(([r, p]) => r ? `<div class="lp lp${p}${r.nm === meN ? ' me' : ''}"><div class="lp-av">${p === 1 ? '<i class="crown">♛</i>' : ''}<img src="${avR(r)}" alt=""><span class="disc d${p}">${p}</span></div><b>${esc(r.nm)}</b><span class="lp-v">${val(r)} ${unit}</span><div class="lp-step">${p}</div></div>` : '<div class="lp empty"></div>').join('')}</div>`;
+  const list = rows.slice(3).map((r, k) => `<div class="lg-row${r.nm === meN ? ' me' : ''}"><span class="lg-n">${k + 4}</span><img src="${avR(r)}" alt=""><div class="lg-mn"><b>${esc(r.nm)}</b><small>${sub(r)}</small></div><span class="lg-v">${val(r)}<small>${unit}</small></span></div>`).join('');
+  B.innerHTML = card + recTabs + pod + (list ? `<div class="lg-list">${list}</div>` : '');
+  bindRec();
 }
+function bindRec() { const t = $('#rtabs'); if (t) t.addEventListener('click', e => { const b = e.target.closest('button'); if (b) { recTrack = b.dataset.r; click(); renderTable(); } }); }
 
 /* ---------- online ---------- */
 let presQ = {};

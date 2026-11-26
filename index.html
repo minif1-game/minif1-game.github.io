@@ -163,7 +163,7 @@ button{cursor:pointer}
 #gc{position:absolute;inset:0;width:100%;height:100%;display:block}
 .speedfx{position:absolute;inset:0;pointer-events:none;opacity:0;background:repeating-conic-gradient(from 0deg at 50% 55%,rgba(255,255,255,.0) 0deg 3deg,rgba(255,255,255,.16) 3deg 3.6deg);mask:radial-gradient(circle at 50% 55%,transparent 32%,#000 75%);-webkit-mask:radial-gradient(circle at 50% 55%,transparent 32%,#000 75%)}
 .hud{position:absolute;pointer-events:none}
-.lapbar{top:10px;left:50%;transform:translateX(-50%);display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);width:min(520px,calc(100% - 210px));height:50px;border-radius:12px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.lapbar{top:10px;left:50%;transform:translateX(-50%);display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);width:min(520px,calc(100% - 380px));height:50px;border-radius:12px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.35)}
 .lb-l,.lb-r{display:flex;align-items:center;gap:8px;padding:0 14px;font:700 15px/1 "Titillium Web",sans-serif;text-transform:uppercase;white-space:nowrap;overflow:hidden}
 .lb-l{background:linear-gradient(90deg,#1d3f8f,#203255);color:#fff}
 .lb-r{background:linear-gradient(90deg,#3b1d2a,#8e1b2b);justify-content:flex-end;color:#fff}
@@ -274,9 +274,9 @@ button{cursor:pointer}
 #game.clash .rbtns,#game.clash .dcard,#game.clash .gasb{display:none!important}
 #game.clash .touch{display:none!important}
 #game.clash .rbtns{bottom:14px!important}
-.mute{position:absolute;top:10px;right:150px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.6);display:grid;place-items:center}
+.mute{position:absolute;top:10px;left:100px;right:auto;width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.6);display:grid;place-items:center}
 .mute svg{width:22px;height:22px}.mute.off #mwave{display:none}
-@media(max-width:700px){.mute{right:136px}}
+@media(max-width:700px){.mute{left:96px}}
 
 /* team manager cards (F1 Clash style) */
 .team{position:absolute;left:8px;right:8px;bottom:8px;display:none;gap:8px;justify-content:center}
@@ -440,6 +440,61 @@ body{background:#15171d}
 .car-cap{position:absolute;left:0;right:0;bottom:10px;text-align:center;pointer-events:none;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.6)}
 .car-cap b{display:block;font:900 italic 24px/1 "Titillium Web",sans-serif}.car-cap small{font-size:13px}
 .car-dots{display:flex;justify-content:center;gap:6px;margin-top:6px}.car-dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.4)}.car-dots i.on{background:#ffd400;width:20px;border-radius:4px}
+
+/* MODE SWITCH */
+.lob-modesw{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px;border-radius:16px;background:rgba(12,13,18,.82);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(8px)}
+.lob-modesw button{display:flex;align-items:center;gap:10px;padding:10px 12px;border:0;border-radius:12px;background:transparent;color:#cfd3da;text-align:left;min-height:56px}
+.lob-modesw button svg{width:26px;height:26px;flex:none}
+.lob-modesw button b{display:block;font:900 17px/1.1 "Titillium Web",sans-serif;color:#fff}.lob-modesw button small{font-size:12px;color:#9aa0ab}
+.lob-modesw button.on{background:linear-gradient(135deg,#e10600,#9b0400);color:#fff;box-shadow:0 6px 18px rgba(225,6,0,.35)}
+.lob-modesw button.on small{color:#ffd9d6}
+/* LEAGUE */
+.lg-head{display:flex;flex-direction:column;gap:2px;margin-bottom:14px}
+.lg-season{font:700 12px "Titillium Web",sans-serif;letter-spacing:.3em;color:#ff4b4b}
+.lg-head .sub{margin:0!important}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:14px;background:#1a1c23;border:1px solid rgba(255,255,255,.08);margin-bottom:16px;max-width:520px}
+.seg button{min-height:42px;border:0;border-radius:10px;background:transparent;color:#aab0bb;font:700 15px "Titillium Web",sans-serif}
+.seg button.on{background:#fff;color:#0b0b0f}
+.lg-me{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:18px;background:linear-gradient(120deg,#e10600,#7a0300 70%);margin-bottom:16px;box-shadow:0 10px 28px rgba(225,6,0,.25)}
+.lg-me img{width:50px;height:50px;border-radius:14px;object-fit:cover;object-position:50% 12%;border:2px solid #fff;flex:none}
+.lg-rank{text-align:center;min-width:64px}.lg-rank small{display:block;font-size:11px;color:#ffd9d6}.lg-rank b{font:900 italic 32px/1 "Titillium Web",sans-serif}
+.lg-mn{flex:1;min-width:0}.lg-mn b{display:block;font:900 18px/1.15 "Titillium Web",sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lg-mn small{color:#c9ced8;font-size:13px;display:flex;gap:6px;align-items:center}
+.lg-me .lg-mn small{color:#ffe1de}
+.lg-pts{text-align:right}.lg-pts b{display:block;font:900 26px/1 "Titillium Web",sans-serif}.lg-pts small{font-size:12px;color:#ffd9d6}
+.lg-trk{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:12px;scrollbar-width:none}
+.lg-trk button{flex:none;min-height:38px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:#1a1c23;color:#cfd3da;font-weight:600;white-space:nowrap}
+.lg-trk button.on{background:#ffd400;color:#111;border-color:#ffd400}
+.lg-pod{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:8px;align-items:end;margin:6px 0 14px}
+.lp{display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
+.lp-av{position:relative;margin-bottom:6px}
+.lp-av img{width:64px;height:64px;border-radius:50%;object-fit:cover;object-position:50% 12%;border:3px solid #c0c4cc;background:#222}
+.lp1 .lp-av img{width:84px;height:84px;border-color:#ffd400;box-shadow:0 0 24px rgba(255,212,0,.45)}
+.lp3 .lp-av img{border-color:#d98a4e}
+.lp-av .disc{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:26px;height:26px;font-size:12px}
+.crown{position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-style:normal;font-size:26px;color:#ffd400;text-shadow:0 2px 8px rgba(0,0,0,.5)}
+.lp b{font:900 16px/1.15 "Titillium Web",sans-serif;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:6px}
+.lp-v{font:700 14px "Titillium Web",sans-serif;color:#ffd400;margin-bottom:6px}
+.lp-step{width:100%;border-radius:14px 14px 0 0;display:grid;place-items:center;font:900 italic 34px "Titillium Web",sans-serif;color:rgba(255,255,255,.85);background:linear-gradient(#2a2d36,#15171d)}
+.lp1 .lp-step{height:96px;background:linear-gradient(#5a4300,#1d1600)}.lp2 .lp-step{height:70px}.lp3 .lp-step{height:52px;background:linear-gradient(#4a2b14,#1a0f07)}
+.lp.me b{color:#ff6b6b}
+.lg-list{display:flex;flex-direction:column;gap:6px}
+.lg-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:#17191f;border:1px solid rgba(255,255,255,.06)}
+.lg-row.me{background:#2a1214;border-color:#e10600}
+.lg-n{width:28px;text-align:center;font:900 italic 20px "Titillium Web",sans-serif;color:#9aa0ab}
+.lg-row img{width:40px;height:40px;border-radius:12px;object-fit:cover;object-position:50% 12%;flex:none}
+.lg-v{font:900 20px "Titillium Web",sans-serif;text-align:right}.lg-v small{display:block;font:600 11px "Albert Sans",sans-serif;color:#9aa0ab}
+.md{display:inline-grid;place-items:center;min-width:22px;height:20px;padding:0 5px;border-radius:999px;font:800 12px "Titillium Web",sans-serif;color:#1a1200}
+.md.g{background:#ffd400}.md.s{background:#cfd3da}.md.b{background:#d98a4e}
+.lg-empty{text-align:center;padding:36px 12px;border-radius:18px;background:#17191f}
+.lg-empty b{font-size:46px}.lg-empty p{color:#cfd3da;font-size:16px}
+.lg-go{display:inline-block;margin-top:6px;padding:12px 22px;border-radius:12px;background:#e10600;color:#fff;font:900 16px "Titillium Web",sans-serif;text-decoration:none}
+/* HELI REC */
+.rec-tag{position:absolute;left:50%;top:58px;transform:translateX(-50%);display:none;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;background:rgba(0,0,0,.55);color:#fff;font:700 12px "Titillium Web",sans-serif;letter-spacing:.12em;z-index:5;pointer-events:none}
+.rec-tag i{width:9px;height:9px;border-radius:50%;background:#ff2a2a;animation:recb 1s steps(2) infinite}
+@keyframes recb{50%{opacity:0}}
+#game.heli .rec-tag{display:flex}
+#game.heli::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 120px rgba(0,0,0,.35);z-index:1}
+@media(max-height:500px){.team{left:50%;right:auto;transform:translateX(-50%);gap:6px;bottom:6px}.tcard{width:290px;max-width:44vw;flex:none}.tc-top{height:22px;font-size:12px}.tc-pos{font-size:13px}.tc-mid{grid-template-columns:auto minmax(0,1fr) 40px;padding:4px 6px 0;gap:6px}.tc-mid img{display:none}.tc-pace{flex-direction:row;gap:3px}.tc-pace button{width:30px;height:30px;font-size:16px}.tc-spd b{font-size:22px}.tc-spd small{font-size:10px}.tc-ers{height:34px}.tc-ty{padding:2px 8px}.tc-ty .tl{width:18px;height:18px;font-size:9px;border-width:2px}.tc-pit{height:28px;font-size:14px;margin:2px 6px 5px}}
 .priv{display:none!important}
 /* TABLE */
 .tbl{width:100%;border-collapse:collapse}
@@ -544,6 +599,7 @@ body{background:#15171d}
       <div><small>Qızıl</small><b id="s-gold">0</b></div>
       <div><small>Onlayn</small><b id="s-on">1</b></div>
     </div>
+    <div class="lob-modesw" id="lobModeSw"><button data-d="clash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></svg><span><b>Menecer</b><small>Komandanı idarə et</small></span></button><button data-d="easy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M12 3v6.5M4.5 15.5l5.3-2.2M19.5 15.5l-5.3-2.2"/></svg><span><b>Özün sür</b><small>Sükan sənin əlində</small></span></button></div>
     <div class="lob-track" id="lobTrackCard"><canvas id="lobThumb"></canvas><div><small>Növbəti yarış</small><b id="lobTrackName">Bakı Bulvarı</b><span id="lobMode">Menecer · 3 dövrə</span></div><a href="#race" class="lob-change">Dəyiş</a></div>
     <button class="lob-go" id="lobGo"><span>YARIŞ</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
   </div>
@@ -601,9 +657,8 @@ body{background:#15171d}
 
 <section class="view" id="v-profile"><div class="page" id="pfPage"></div></section>
 <section class="view" id="v-table"><div class="page">
-  <h2>Çempionat</h2>
-  <p class="sub">Hər trekdə ən yaxşı nəticən xal gətirir: 1-ci yer 25, 2-ci 18, 3-cü 15…</p>
-  <div class="tabs" id="ttabs"><button data-t="champ">Xallar</button><button data-t="med">Medallar</button><button data-t="rec">Rekordlar</button></div>
+  <div class="lg-head"><div><span class="lg-season">2026 MÖVSÜMÜ</span><h2>Liqa</h2></div><p class="sub">Hər trekdə ən yaxşı nəticən xal gətirir: 1-ci 25, 2-ci 18, 3-cü 15…</p></div>
+  <div class="seg" id="ttabs"><button data-t="champ">Xallar</button><button data-t="med">Medallar</button><button data-t="rec">Rekordlar</button></div>
   <div id="tbody"></div>
   <p class="note" id="tnote"></p>
 </div></section>
@@ -611,6 +666,7 @@ body{background:#15171d}
 <div id="game">
   <canvas id="gc"></canvas>
   <div class="speedfx" id="sfx"></div>
+  <div class="rec-tag"><i></i>CANLI · HELİKOPTER</div>
   <div class="hud lapbar"><div class="lb-l" id="lbName">PİLOT</div><div class="lb-c"><small>Dövrə</small><b id="hlap">1/3</b></div><div class="lb-r"><svg id="hwxi" viewBox="0 0 24 24"></svg><span id="hwx">Günəşli</span></div></div>
   <ol class="hud tower" id="tower"></ol>
   <div class="hud dcard">
