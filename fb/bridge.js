@@ -59,6 +59,7 @@
   }
   let roomP = null;
   window.claude = {
+    fb: true,
     use(kind) {
       return ready.then(u => {
         if (kind === 'db') return db;

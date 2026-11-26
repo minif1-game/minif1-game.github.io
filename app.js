@@ -42,6 +42,8 @@ const TRACKS = [
   { id: 'dag', n: 'Dağ Yolu', sub: 'Çoxlu döngə, az düz yol', ground: '#c9d5b2', seed: 41, park: true,
     pts: [[220,600],[560,620],[720,560],[900,600],[960,470],[830,400],[900,260],[780,130],[580,180],[500,90],[310,110],[270,240],[140,290],[180,440],[110,540]] },
   { id: 'korfez', n: 'Gecə Körfəzi', sub: 'Real şəhər, körfəz və göydələnlər', ground: '#1b2230', night: true, seed: 61, model: true, S: 1, pts: [[-1922,2871],[-2228,2810],[-2495,2642],[-2633,2336],[-2671,1800],[-2702,1188],[-2725,500],[-2717,-21],[-2625,-189],[-2419,-243],[-1845,-220],[-1371,-189],[-1248,-51],[-1202,155],[-1080,201],[-621,201],[-529,79],[-499,-143],[-353,-189],[488,-151],[542,40],[588,209],[909,346],[1292,576],[1636,844],[1904,1050],[2072,500],[2248,-266],[2401,-1030],[2477,-1298],[2668,-1107],[3128,-724],[3357,-418],[3548,-189],[3740,25],[3510,500],[3204,1112],[2898,1647],[2745,1800],[2516,1647],[2248,1418],[2018,1264],[1904,1456],[1735,1953],[1636,2106],[1368,1953],[909,1724],[450,1433],[68,1188],[-238,1096],[-1080,1066],[-1845,1050],[-2074,1112],[-2113,1418],[-1960,1876],[-1807,2259],[-1845,2718]] },
+  { id: 'ostin', n: 'Ostin Təpəsi', sub: 'Təpəyə qalxan start, ilan kimi döngələr', ground: '#d6ccaa', seed: 73,
+    pts: [[160,600],[150,420],[142,250],[152,150],[205,108],[255,158],[302,118],[352,168],[402,120],[452,170],[512,130],[572,170],[650,150],[780,140],[862,172],[892,232],[842,272],[600,300],[350,330],[292,362],[302,422],[362,452],[332,502],[402,542],[522,522],[602,562],[542,618],[382,632],[242,632]] },
   { id: 'gece', n: 'Gecə Ulduzu', sub: 'İşıqlar altında gecə yarışı', ground: '#2a2f3b', night: true, seed: 53,
     pts: [[300,600],[800,610],[920,490],[800,410],[840,270],[720,140],[520,200],[430,100],[230,130],[150,290],[280,370],[170,500]] }
 ];
@@ -301,7 +303,7 @@ function standings() {
 }
 
 /* ---------- routing ---------- */
-const VIEWS = ['home', 'pilots', 'garage', 'race', 'table', 'profile'];
+const VIEWS = ['home', 'pilots', 'garage', 'race', 'table', 'profile', 'shop'];
 function route() {
   let v = location.hash.slice(1); if (!VIEWS.includes(v)) v = 'home';
   $$('.view').forEach(e => e.classList.toggle('on', e.id === 'v-' + v));
@@ -315,6 +317,8 @@ function route() {
   if (v === 'race') renderLobby();
   if (v === 'table') renderTable();
   if (v === 'profile') renderProfile();
+  if (v === 'shop') renderShop();
+  const lv = $('#lobVid'); if (lv) { if (v === 'home') lv.play().catch(() => {}); else lv.pause(); }
   presence({ view: v });
 }
 addEventListener('hashchange', route);
@@ -354,7 +358,7 @@ function stopCity() { cancelAnimationFrame(cityRaf); cityRaf = 0; }
 let L3 = null;
 function lobPilot() { return meKey(); }
 function startLobby() {
-  renderLobbyUI();
+  renderLobbyUI(); { const lv = $('#lobVid'); if (lv && !race) lv.play().catch(() => {}); }
   if (!HAS3D) return;
   if (!L3) {
     const cv = $('#lob'), r = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true }); r.setClearColor(0x000000, 0); r.shadowMap.enabled = true;
@@ -362,7 +366,7 @@ function startLobby() {
     scene.add(new THREE.HemisphereLight('#ffd0d0', '#200006', .55));
     const key = new THREE.SpotLight('#ffffff', 1.4, 40, .55, .6); key.position.set(3, 10, 6); key.castShadow = true; key.shadow.mapSize.set(1024, 1024); scene.add(key);
     const rim = new THREE.PointLight('#ff2010', 1.3, 12); rim.position.set(-3, 3, -4); scene.add(rim);
-    const floor = new THREE.Mesh(new THREE.CircleGeometry(6, 64), new THREE.MeshStandardMaterial({ color: '#141416', metalness: .25, roughness: .5 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(6, 64), new THREE.MeshStandardMaterial({ color: '#141416', metalness: .25, roughness: .5, transparent: true, opacity: .72 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
     const ringM = new THREE.MeshBasicMaterial({ color: '#ff1a10' });
     for (const [r0, y] of [[3.4, .01], [4.6, .01]]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(r0, .025, 6, 120), ringM); ring.rotation.x = Math.PI / 2; ring.position.y = y; scene.add(ring); }
     const glow = new THREE.Mesh(new THREE.RingGeometry(3.2, 3.7, 96), new THREE.MeshBasicMaterial({ color: '#ff2a1a', transparent: true, opacity: .18, side: THREE.DoubleSide })); glow.rotation.x = -Math.PI / 2; glow.position.y = .012; scene.add(glow);
@@ -375,9 +379,9 @@ function startLobby() {
   lobCar(); if (!GLB) loadGLB().then(g => { if (g) { L3.key = ''; lobCar(); } });
   if (!L3.raf) { const loop = () => { const { r, cam, scene } = L3, cv = r.domElement, w = cv.clientWidth, h = cv.clientHeight, pr = Math.min(2, devicePixelRatio || 1); if (cv.width !== Math.round(w * pr) || cv.height !== Math.round(h * pr)) { r.setPixelRatio(pr); r.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); } if (L3.auto) L3.yaw += .0035; if (L3.car) L3.car.rotation.y = L3.yaw; const port = w / h < 1.25; cam.fov = port ? 40 : 30; cam.updateProjectionMatrix(); if (port) { cam.position.set(0, 4.2, 14); cam.lookAt(0, -1.4, 0); } else { cam.position.set(1.5, 3.2, 11); cam.lookAt(1.8, .2, 0); } r.render(scene, cam); L3.raf = requestAnimationFrame(loop); }; L3.raf = requestAnimationFrame(loop); }
 }
-function stopLobby() { if (L3 && L3.raf) { cancelAnimationFrame(L3.raf); L3.raf = 0; } }
+function stopLobby() { const lv = $('#lobVid'); if (lv) lv.pause(); if (L3 && L3.raf) { cancelAnimationFrame(L3.raf); L3.raf = 0; } }
 function lobCar() {
-  if (!L3) return; const pk = lobPilot(), g = garage(pk); if (CARS.find(c => c.id === g.model && c.url) && !XM[g.model]) loadCarModel(g.model).then(() => { L3.key = ''; lobCar(); }); const k = JSON.stringify([pk, g, !!GLB, !!XM[g.model]]); if (k === L3.key) return; L3.key = k;
+  if (!L3) return; const pk = lobPilot(), g = ownedG(garage(pk)); if (CARS.find(c => c.id === g.model && c.url) && !XM[g.model]) loadCarModel(g.model).then(() => { L3.key = ''; lobCar(); }); const k = JSON.stringify([pk, g, !!GLB, !!XM[g.model]]); if (k === L3.key) return; L3.key = k;
   if (L3.car) L3.scene.remove(L3.car);
   L3.car = makeCar3D({ model: g.model, color: g.color, color2: g.color2, pattern: g.pattern, helm: g.helmet, num: g.num, tyre: g.tyre });
   L3.car.traverse(o => { if (o.isMesh) o.castShadow = true; }); L3.car.scale.setScalar(1); L3.scene.add(L3.car);
@@ -396,7 +400,7 @@ function updTop() {
   const pk = lobPilot(), s = standings(), r = myStats();
   $('#gAva').src = avOf(ME); $('#gName').textContent = ME ? ME.name : 'Qonaq';
   $('#gLvl').textContent = 'Səviyyə ' + (1 + Math.floor(r.races / 3));
-  $('#gCoin').textContent = coinsOf().toLocaleString('az'); $('#gStar').textContent = r.total;
+  $('#gCoin').textContent = wallet().toLocaleString('az'); $('#gStar').textContent = r.total;
 }
 
 $('#lobGo').addEventListener('click', () => { audioInit(); if (st.diff === 'clash') { const others = st.peers.filter(p => !p.sameTab && p.presence && p.presence.trk === st.track && p.presence.st === 'lobby').length; if (!others) { showPrerace(); return; } } startRace(Date.now() + 3400, st.laps); });
@@ -760,6 +764,24 @@ function heliUpdate(R, dt) {
   const kl = 1 - Math.exp(-dt * 3.2); H.look.x += (lx + Math.cos(la) * 6 - H.look.x) * kl; H.look.z += (lz + Math.sin(la) * 6 - H.look.z) * kl;
   H.lead = lead;
 }
+
+/* ---------- ideal racing line (green = speed up, yellow = careful, red = brake) ---------- */
+function racingLine(tr) {
+  if (tr.rline) return tr.rline;
+  const n = tr.n, c = new Float32Array(n), o = new Float32Array(n), A = HW * .72, G = 5.5, T = x => Math.tanh(G * x);
+  for (let i = 0; i < n; i++) c[i] = angN(tr.th[(i + 5) % n] - tr.th[(i - 5 + n) % n]);
+  for (let i = 0; i < n; i++) { const c0 = T(c[i]), ca = T(c[(i + 14) % n]), cb = T(c[(i - 14 + n) % n]); o[i] = A * c0 - .85 * A * (ca + cb) * (1 - Math.abs(c0)); }
+  for (let pass = 0; pass < 4; pass++) { const p = Float32Array.from(o); for (let i = 0; i < n; i++) { let s = 0; for (let k = -4; k <= 4; k++) s += p[(i + k + n) % n]; o[i] = clamp(s / 9, -A, A); } }
+  const col = []; for (let i = 0; i < n; i++) { const v = tr.vmax[i], ahead = Math.min(tr.vmax[(i + 6) % n], tr.vmax[(i + 12) % n]); col.push(ahead < v * .9 ? 2 : v < TOP * .62 ? 1 : 0); }
+  return tr.rline = { o, col };
+}
+function racingLineMesh(tr) {
+  const L = racingLine(tr), n = tr.n, pos = [], cols = [], idx = [], C = [new THREE.Color('#2fe06b'), new THREE.Color('#ffd400'), new THREE.Color('#ff3b2f')], w = 4.5;
+  for (let i = 0; i <= n; i++) { const j = i % n, p = tr.pts[j], a = tr.th[j], nx = -Math.sin(a), ny = Math.cos(a), off = L.o[j]; for (const s of [-w, w]) { pos.push((p.x + nx * (off + s)) * U, .045, (p.y + ny * (off + s)) * U); const cc = C[L.col[j]]; cols.push(cc.r, cc.g, cc.b); } if (i < n) { const b = i * 2; idx.push(b, b + 1, b + 2, b + 1, b + 3, b + 2); } }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3)); g.setIndex(idx);
+  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: .55, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -3 }));
+  m.renderOrder = 2; return m;
+}
 function makeCar3D(o) {
   if (XM[o.model]) return makeGenericCar(o);
   if (o.model === 'classic' && CLS) return makeClassicCar(o);
@@ -1016,7 +1038,7 @@ function garageCar(dir, from) {
   G3.car = nc; G3.scene.add(nc);
   setXray(G3.car, gsec === 'eng' ? 'eng' : gsec === 'ers' ? 'ers' : null);
   const C = CARS.find(c => c.id === g.model) || CARS[0], ix = CARS.indexOf(C);
-  $('#carName').textContent = C.n; $('#carDesc').textContent = C.d; $('#carDots').innerHTML = CARS.map((c, k) => `<i class="${k === ix ? 'on' : ''}"></i>`).join('');
+  $('#carName').textContent = (owns(C.id) ? '' : '🔒 ') + C.n; $('#carDesc').textContent = C.d; const cb = $('#carBuy'); if (cb) { cb.hidden = owns(C.id); cb.textContent = 'Al · ₼ ' + (SHOP_CARS[C.id] || 0); cb.onclick = () => buyDialog(C.id, () => { garageCar(); renderGarage(); }); } $('#carDots').innerHTML = CARS.map((c, k) => `<i class="${k === ix ? 'on' : ''}"></i>`).join('');
 }
 
 /* ---------- 3D tyre compounds for the garage ---------- */
@@ -1048,10 +1070,10 @@ function renderGarage() {
   $('#gtabs').innerHTML = '';
   $$('#gsec button').forEach(b => b.classList.toggle('on', b.dataset.s === gsec));
   const g = garage(gkeyStore(st.gtab)), P = $('#gpanel');
-  const sw = (attr, list, cur) => `<div class="sw">${list.map(c => `<button data-${attr}="${c[0]}" aria-label="${c[1]}" title="${c[1]}" class="${c[0] === cur ? 'on' : ''}" style="background:${c[0]}"></button>`).join('')}</div>`;
+  const sw = (attr, list, cur) => `<div class="sw">${list.concat(attr === 'c' || attr === 'c2' ? PREM.map(p => [p[0], p[1]]) : []).map(c => `<button data-${attr}="${c[0]}" aria-label="${c[1]}" title="${c[1]}" class="${c[0] === cur ? 'on' : ''}${owns(c[0]) ? '' : ' lock'}" style="background:${c[0]}"></button>`).join('')}</div>`;
   if (G3) G3.selTyre = g.tyre;
   if (gsec === 'tyre') loadTyres();
-  if (gsec === 'car') P.innerHTML = `<h3>Bolid seç</h3><p>Yuxarıda maşını barmağınla sağa-sola sürüşdür və ya buradan seç.</p><div class="ty">${CARS.map(x => `<button data-m="${x.id}" class="${x.id === g.model ? 'on' : ''}"><b>${x.n}</b><small>${x.d}</small></button>`).join('')}</div>`;
+  if (gsec === 'car') P.innerHTML = `<h3>Bolid seç</h3><p>Yuxarıda maşını barmağınla sağa-sola sürüşdür və ya buradan seç.</p><div class="ty">${CARS.map(x => `<button data-m="${x.id}" class="${x.id === g.model ? 'on' : ''}"><b>${owns(x.id) ? '' : '🔒 '}${x.n}</b><small>${owns(x.id) ? x.d : '₼ ' + SHOP_CARS[x.id] + ' · mağazada al'}</small></button>`).join('')}</div>`;
   else if (gsec === 'paint') P.innerHTML = `<h3>Əsas rəng</h3><p>Bolidin əsas rəngi.</p>${sw('c', COLORS, g.color)}<p style="margin:16px 0 8px">İkinci rəng (zolaq, alov, ulduzlar)</p>${sw('c2', COLORS, g.color2)}`;
   else if (gsec === 'liv') P.innerHTML = `<h3>Hazır dizaynlar</h3><p>Bir toxunuşla bolidin iki rəngini birlikdə dəyiş.</p><div class="livs">${PRESETS.map((p, i) => `<button data-pr="${i}" class="${p[1] === g.color && p[2] === g.color2 ? 'on' : ''}"><img alt="" src="${liveryThumb({ color: p[1], color2: p[2], pattern: 'twotone', tyre: g.tyre })}">${p[0]}</button>`).join('')}</div>`;
   else if (gsec === 'tyre') P.innerHTML = `<h3>Şinlər</h3><p>Yarışda şinlər yeyilir. Göstərici qırmızıya düşəndə Pit Stop et.</p><div class="ty">${Object.entries(TYRES).map(([k, t]) => `<button data-t="${k}" class="${k === g.tyre ? 'on' : ''}"><b><i style="border-color:${t.c}"></i>${t.n}</b><small>${t.d}</small></button>`).join('')}</div>`;
@@ -1064,10 +1086,62 @@ $('#gsec').addEventListener('click', e => { const b = e.target.closest('button')
 $('#gtabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { st.gtab = b.dataset.k; LS.set('gtab', st.gtab); renderGarage(); garageCar(); } });
 $('#gpanel').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return; const k = gkeyStore(st.gtab), d = b.dataset, g0 = garage(k);
-  if (d.m) { const o = CARS.findIndex(c => c.id === g0.model), nI = CARS.findIndex(c => c.id === d.m); setGarage(k, { model: d.m }); renderGarage(); garageCar(nI > o ? 1 : -1); syncGarage(); return; } else if (d.c) setGarage(k, { color: d.c }); else if (d.c2) setGarage(k, { color2: d.c2 }); else if (d.hm) setGarage(k, { helmet: d.hm }); else if (d.t) setGarage(k, { tyre: d.t }); else if (d.p) setGarage(k, { pattern: d.p }); else if (d.pr) { const p = PRESETS[+d.pr]; setGarage(k, { color: p[1], color2: p[2] }); } else return;
+  if (d.m) { const o = CARS.findIndex(c => c.id === g0.model), nI = CARS.findIndex(c => c.id === d.m); setGarage(k, { model: d.m }); renderGarage(); garageCar(nI > o ? 1 : -1); syncGarage(); return; } else if ((d.c || d.c2) && !owns(d.c || d.c2)) { buyDialog(d.c || d.c2, () => { setGarage(k, d.c ? { color: d.c } : { color2: d.c2 }); renderGarage(); garageCar(); }); return; } else if (d.c) setGarage(k, { color: d.c }); else if (d.c2) setGarage(k, { color2: d.c2 }); else if (d.hm) setGarage(k, { helmet: d.hm }); else if (d.t) setGarage(k, { tyre: d.t }); else if (d.p) setGarage(k, { pattern: d.p }); else if (d.pr) { const p = PRESETS[+d.pr]; setGarage(k, { color: p[1], color2: p[2] }); } else return;
   renderGarage(); garageCar(); homeCity = null;
 });
 
+
+/* ---------- shop & chests ---------- */
+const SHOP_CARS = { vintage: 300, s800: 400, lotus49: 500, f2019: 600, r26: 800, future: 1200 };
+const PREM = [['#ffd700', 'Qızıl xrom', 250], ['#39ff14', 'Neon yaşıl', 150], ['#ff00c8', 'Neon çəhrayı', 150], ['#00e5ff', 'Buz mavisi', 150], ['#8b0000', 'Tünd albalı', 150], ['#ff5f1f', 'Lava', 200], ['#3a3d4a', 'Karbon', 200], ['#b9f2ff', 'Brilyant', 300]];
+const FREE_EVERY = 4 * 3600e3;
+function shopState() { const s = (ME && ME.shop) || LS.get('shopG', null) || {}; return { spent: Math.max(0, +s.spent || 0), bonus: Math.max(0, +s.bonus || 0), owned: Array.isArray(s.owned) ? s.owned.filter(x => typeof x === 'string').slice(0, 80) : [], free: +s.free || 0 }; }
+function shopSave(s) { if (ME) { accSave({ shop: s }); } else LS.set('shopG', s); setTimeout(updTop, 50); }
+function wallet() { const s = shopState(); return Math.max(0, coinsOf() + 300 + s.bonus - s.spent); }
+function isPrem(id) { return PREM.some(p => p[0] === id); }
+function owns(id) { if (!(id in SHOP_CARS) && !isPrem(id)) return true; return shopState().owned.includes(id); }
+function priceOf(id) { return SHOP_CARS[id] || (PREM.find(p => p[0] === id) || [])[2] || 0; }
+function nameOf(id) { const c = CARS.find(x => x.id === id); if (c) return c.n; const p = PREM.find(x => x[0] === id); return p ? p[1] + ' rəng' : id; }
+function ownedG(g) { const o = Object.assign({}, g); if (!owns(o.model)) o.model = 'modern'; if (!owns(o.color)) o.color = '#e10600'; if (!owns(o.color2)) o.color2 = '#ffffff'; return o; }
+function buy(id) { if (owns(id)) return 'ok'; const p = priceOf(id); if (wallet() < p) return 'poor'; const s = shopState(); s.spent += p; s.owned.push(id); shopSave(s); cheer(); return 'ok'; }
+function buyDialog(id, after) {
+  const p = priceOf(id), w = wallet(), M = $('#shopModal');
+  M.innerHTML = `<div class="sm-card"><div class="sm-ico">${isPrem(id) ? `<i style="background:${id}"></i>` : '🏎️'}</div><h3>${esc(nameOf(id))}</h3><p>Qiymət: <b class="coin-t">₼ ${p}</b><br>Sənin qızılın: ₼ ${w}</p>${w >= p ? '<button class="sm-buy" id="smBuy">Al</button>' : '<p class="sm-poor">Qızıl çatmır. Yarış qazan və ya sandıq aç!</p>'}<button class="sm-x" id="smX">Bağla</button></div>`;
+  M.hidden = false; $('#smX').onclick = () => { M.hidden = true; };
+  if ($('#smBuy')) $('#smBuy').onclick = () => { if (buy(id) === 'ok') { M.hidden = true; after && after(); } };
+}
+function chestRoll(kind) {
+  const s = shopState(), R = Math.random(), noCars = Object.keys(SHOP_CARS).filter(k => !s.owned.includes(k)).sort((a, b) => SHOP_CARS[a] - SHOP_CARS[b]), noCols = PREM.map(p => p[0]).filter(k => !s.owned.includes(k));
+  if (kind === 'gold') { if (R < .45 && noCars.length) return { item: noCars[Math.random() * Math.min(3, noCars.length) | 0] }; if (R < .8 && noCols.length) return { item: noCols[Math.random() * noCols.length | 0] }; return { coins: 400 + (Math.random() * 300 | 0) }; }
+  if (R < .4 && noCols.length) return { item: noCols[Math.random() * noCols.length | 0] }; return { coins: 50 + (Math.random() * 100 | 0) };
+}
+function openChest(kind) {
+  const s = shopState(), now = Date.now();
+  if (kind === 'free' && now - s.free < FREE_EVERY) return;
+  if (kind === 'gold') { if (wallet() < 300) { buyDialogPoor(); return; } s.spent += 300; }
+  else s.free = now;
+  const r = chestRoll(kind); if (r.item) s.owned.push(r.item); else s.bonus += r.coins; shopSave(s);
+  const M = $('#shopModal');
+  M.innerHTML = `<div class="sm-card chest-open"><div class="chest ${kind}"><div class="lid"></div><div class="box"></div><div class="glow"></div></div><div class="sm-rew" hidden>${r.item ? (isPrem(r.item) ? `<i class="rw-col" style="background:${r.item}"></i>` : '<span class="rw-car">🏎️</span>') + `<h3>${esc(nameOf(r.item))}</h3><p>Yeni! Qarajda istifadə et.</p>` : `<span class="rw-coin">₼</span><h3>+${r.coins} qızıl</h3>`}<button class="sm-buy" id="smOk">Əla!</button></div></div>`;
+  M.hidden = false; noiseHit(.6, 300, .2, 1);
+  setTimeout(() => { M.querySelector('.chest').classList.add('open'); cheer(); M.querySelector('.sm-rew').hidden = false; $('#smOk').onclick = () => { M.hidden = true; renderShop(); }; }, 1400);
+}
+function buyDialogPoor() { const M = $('#shopModal'); M.innerHTML = `<div class="sm-card"><div class="sm-ico">🪙</div><h3>Qızıl çatmır</h3><p>Qızıl sandıq 300 ₼-dır. Yarışlarda qalib gəl, qızıl qazan!</p><button class="sm-x" id="smX">Bağla</button></div>`; M.hidden = false; $('#smX').onclick = () => { M.hidden = true; }; }
+function renderShop() {
+  const P = $('#shopPage'); if (!P) return; const s = shopState(), w = wallet(), left = Math.max(0, FREE_EVERY - (Date.now() - s.free));
+  const hh = n => { const m = Math.ceil(n / 60000); return (m >= 60 ? Math.floor(m / 60) + ' saat ' : '') + (m % 60) + ' dəq'; };
+  P.innerHTML = `<div class="lg-head"><div><span class="lg-season">QARAJ MAĞAZASI</span><h2>Mağaza</h2></div></div>
+  <div class="sh-wallet"><span class="g-pill coin"><i>₼</i><b>${w.toLocaleString('az')}</b></span><small>Qızıl yarışlarda qazanılır: hər xal 100, qızıl medal 500, hər yarış 50.</small></div>
+  <h3 class="sh-h">Sandıqlar</h3>
+  <div class="sh-chests"><button class="sh-chest free" data-ch="free" ${left ? 'disabled' : ''}><div class="chest mini free"><div class="lid"></div><div class="box"></div></div><b>Pulsuz sandıq</b><small>${left ? hh(left) + ' sonra' : 'İndi aç!'}</small></button>
+  <button class="sh-chest gold" data-ch="gold"><div class="chest mini gold"><div class="lid"></div><div class="box"></div></div><b>Qızıl sandıq</b><small>₼ 300 · maşın və ya xüsusi rəng</small></button></div>
+  <h3 class="sh-h">Bolidlər</h3>
+  <div class="sh-grid">${Object.keys(SHOP_CARS).map(id => { const c = CARS.find(x => x.id === id), o = owns(id); return `<button class="sh-item${o ? ' own' : ''}" data-buy="${id}"><span class="sh-car">🏎️</span><b>${esc(c ? c.n : id)}</b><small>${esc(c ? c.d : '')}</small><em>${o ? '✓ Səndədir' : '₼ ' + SHOP_CARS[id]}</em></button>`; }).join('')}</div>
+  <h3 class="sh-h">Xüsusi rənglər</h3>
+  <div class="sh-grid cols">${PREM.map(([id, n, p]) => { const o = owns(id); return `<button class="sh-item${o ? ' own' : ''}" data-buy="${id}"><i class="sh-col" style="background:${id}"></i><b>${n}</b><em>${o ? '✓ Səndədir' : '₼ ' + p}</em></button>`; }).join('')}</div>`;
+  P.querySelectorAll('[data-ch]').forEach(b => b.onclick = () => { click(); openChest(b.dataset.ch); });
+  P.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => { click(); const id = b.dataset.buy; if (owns(id)) { location.hash = 'garage'; return; } buyDialog(id, renderShop); });
+}
 /* ---------- lobby ---------- */
 function thumb(cv, tr) {
   const W = cv.clientWidth || 220, H = cv.clientHeight || 138, d = Math.min(2, devicePixelRatio || 1); cv.width = W * d; cv.height = H * d;
@@ -1175,11 +1249,11 @@ async function startRace(go, laps, opts) {
   if (!HAS3D) { alertBox('3D qrafika bu cihazda yüklənmədi. Səhifəni yenilə.'); return; }
   { const b = $('#start'), t0 = Date.now(); b.textContent = 'Yüklənir…'; await loadGLB(); if (TRACKS.find(t => t.id === st.track).model) await loadKRF(); await Promise.all([...CARS.filter(c => c.url).map(c => loadCarModel(c.id)), loadHeli()]); b.textContent = 'Start'; if (Date.now() - t0 > 200 && go - Date.now() < 2500) go = Date.now() + 3200; }
   stopLobby(); stopGarage();
-  const tr = getTrack(st.track), key = pilotKey(), g = myGarage(), ty = TYRES[g.tyre];
+  const tr = getTrack(st.track), key = pilotKey(), g = ownedG(myGarage()), ty = TYRES[g.tyre];
   if (tr.def.model) laps = Math.max(1, Math.round(laps / 2));
   const clash = st.diff === 'clash', easy = st.diff !== 'pro', wx = opts.wx || pickWeather(tr, go), wgrip = WX[wx][1];
   const team = [];
-  if (clash) [[meKey(), pilotName(), codeOf(pilotName())], [meKey() + '_2', 'Yoldaş', 'YOL']].forEach(([pk, nm, cd], ti) => { const gg = garage(pk), c = newCar({ me: true, mine: true, pkey: pk, model: gg.model, name: nm, code: cd, color: gg.color, color2: gg.color2, pattern: gg.pattern, helm: gg.helmet, num: gg.num, pace: 1, ava: ti ? avLetter(nm, gg.color) : avOf(ME) }); tyreApply(c, (opts.tyres || {})[ti ? 'b' : 'a'] || gg.tyre, wx); team.push(c); });
+  if (clash) [[meKey(), pilotName(), codeOf(pilotName())], [meKey() + '_2', 'Yoldaş', 'YOL']].forEach(([pk, nm, cd], ti) => { const gg = ownedG(garage(pk)), c = newCar({ me: true, mine: true, pkey: pk, model: gg.model, name: nm, code: cd, color: gg.color, color2: gg.color2, pattern: gg.pattern, helm: gg.helmet, num: gg.num, pace: 1, ava: ti ? avLetter(nm, gg.color) : avOf(ME) }); tyreApply(c, (opts.tyres || {})[ti ? 'b' : 'a'] || gg.tyre, wx); team.push(c); });
   const me = clash ? team[0] : newCar({ me: true, model: g.model, name: pilotName(), code: codeOf(pilotName()), color: g.color, color2: g.color2, pattern: g.pattern, helm: g.helmet, num: g.num, tyre: g.tyre, top: TOP * ty.top * (wx === 'rain' ? .95 : 1), grip: ty.grip * wgrip, wearRate: ty.wear * (easy ? .6 : 1) });
   const peersNow = st.peers.filter(p => !p.sameTab && p.presence && p.presence.trk === st.track && (p.presence.st === 'lobby' || p.presence.st === 'grid')).length;
   const nBots = Math.max(1, (clash ? 4 : 5) - peersNow * (clash ? 2 : 1)), cars = clash ? [...team] : [me];
@@ -1195,6 +1269,7 @@ async function startRace(go, laps, opts) {
   if (wx === 'rain') { W.scene.add(X.rain); objs.push(X.rain); W.roadMat.roughness = .3; W.roadMat.metalness = .35; W.roadMat.color.set('#8a8f99'); } else { W.roadMat.roughness = .82; W.roadMat.metalness = 0; W.roadMat.color.set('#ffffff'); }
   W.scene.background = wx === 'rain' ? W.skyRain : W.skyDay; W.hemi.intensity = tr.def.model ? 1.0 : tr.def.night ? .55 : wx === 'rain' ? .6 : wx === 'cloud' ? .75 : .85; W.sun.intensity = tr.def.model ? .7 : tr.def.night ? .55 : wx === 'rain' ? .35 : wx === 'cloud' ? .6 : 1.05; W.scene.fog.color.set(wx === 'rain' ? '#a3adb8' : tr.def.night ? '#1b2340' : '#cfe6f5'); W.scene.fog.near = wx === 'rain' ? 40 : 90; W.scene.fog.far = wx === 'rain' ? 190 : 330;
   race = { tr, cars, me, team, go, laps, easy, clash, wx, W, X, objs, peers: new Map(), finished: [], cam: null, lastP: 0, lastHud: 0, lit: -1, key };
+  if (!clash && LS.get('rline', true)) { const rlm = racingLineMesh(tr); W.scene.add(rlm); objs.push(rlm); }
   if (HELI) { const ho = new THREE.Group(); ho.add(HELI.holder); HELI.holder.traverse(o => { if (o.isMesh) o.castShadow = true; }); W.scene.add(ho); objs.push(ho); const p0 = me.x * U, q0 = me.y * U; race.heli = { obj: ho, rotors: HELI.rotors, gimbal: HELI.gimbal, led: HELI.led, p: new THREE.Vector3(p0 + 30, 34, q0 + 20), look: new THREE.Vector3(p0, 0, q0), yaw: 0 }; }
   $('#game').classList.add('on'); $('#game').classList.toggle('pro', !easy); $('#game').classList.toggle('clash', clash); if (clash) { st.cam = 3; $('#camT').textContent = CAMS[3]; } else { if (st.cam >= 3) st.cam = 0; $('#camT').textContent = CAMS[st.cam]; } $('#res').classList.remove('on'); $('#lights').hidden = false; $('#go').hidden = true; $('#pitbox').hidden = true; $('#hint').hidden = true;
   $$('#lights i').forEach(i => i.classList.remove('lit')); W.lamps.forEach(l => l.material.color.set('#2a0505'));
@@ -1459,7 +1534,7 @@ async function connect() {
     if (room) {
       st.room = room;
       room.onPeers(ch => { st.peers = ch.peers.slice(); updOnline(); if ($('#v-race').classList.contains('on') && !race) { renderPeers(); maybeJoin(); } }, () => { st.room = null; updOnline(); });
-      const g = myGarage(); room.presence(Object.assign({ nm: pilotName(), mdl: g.model, col: g.color, col2: g.color2, pat: g.pattern, num: g.num }, presQ)).catch(() => {});
+      const g = ownedG(myGarage()); room.presence(Object.assign({ nm: pilotName(), mdl: g.model, col: g.color, col2: g.color2, pat: g.pattern, num: g.num }, presQ)).catch(() => {});
       updOnline();
     }
     if (db && st.uid) {
@@ -1537,15 +1612,26 @@ $('#auLogin').addEventListener('submit', async e => {
   btn.disabled = true; err.textContent = '';
   const acc = await accGet(u); btn.disabled = false;
   if (!acc || typeof acc.salt !== 'string' || (await sha(acc.salt + ':' + code)) !== acc.hash) { err.textContent = 'İstifadəçi adı və ya kod səhvdir.'; return; }
-  ME = { user: u, name: String(acc.name || u).slice(0, 16), av: (AVS.some(x => x[0] === acc.av) || acc.av === 'photo' || PRIV_AV[acc.av]) ? acc.av : '#e10600', photo: typeof acc.photo === 'string' && acc.photo.startsWith('data:image/') ? acc.photo : '' }; LS.set('session', ME); if (acc.garage && typeof acc.garage === 'object') { if (acc.garage.a) LS.set('g.u_' + u, acc.garage.a); if (acc.garage.b) LS.set('g.u_' + u + '_2', acc.garage.b); }
+  ME = { user: u, name: String(acc.name || u).slice(0, 16), av: (AVS.some(x => x[0] === acc.av) || acc.av === 'photo' || PRIV_AV[acc.av]) ? acc.av : '#e10600', photo: typeof acc.photo === 'string' && acc.photo.startsWith('data:image/') ? acc.photo : '' }; if (acc.shop && typeof acc.shop === 'object') ME.shop = acc.shop; LS.set('session', ME); if (acc.garage && typeof acc.garage === 'object') { if (acc.garage.a) LS.set('g.u_' + u, acc.garage.a); if (acc.garage.b) LS.set('g.u_' + u + '_2', acc.garage.b); }
   $('#auth').hidden = true; applySession(); whoosh();
 });
+$('#liForgot').addEventListener('click', () => { $('#auAdm').hidden = !$('#auAdm').hidden; });
+$('#aaGo').addEventListener('click', async () => { const m = $('#aaMsg'); m.style.color = ''; m.textContent = 'Yoxlanılır…'; const r = await adminReset($('#aaCode').value.trim().toUpperCase(), normUser($('#aaUser').value)); if (r.err) { m.style.color = '#ff6b6b'; m.textContent = r.err; return; } m.innerHTML = `${esc(r.name)} üçün yeni kod: <b class="adm-code">${r.code}</b>`; $('#liUser').value = normUser($('#aaUser').value); });
 $('#auGuest').addEventListener('click', () => { $('#auth').hidden = true; ME = null; });
 $('#gMe').addEventListener('click', e => { e.preventDefault(); if (!ME) { showAuth('login'); return; } location.hash = 'profile'; });
 $('#pfX').addEventListener('click', () => { $('#prof').hidden = true; });
 $('#pfOut').addEventListener('click', () => { ME = null; LS.set('session', null); $('#prof').hidden = true; showAuth('login', 'Hesabdan çıxdın.'); });
 
 /* ---------- profile (like Safiverse) ---------- */
+const ADMIN_HASH = 'e3d01ba0cf02beb303201806d314a0cbe2d78cd8a0039aec8032ba7be21dda32';
+async function adminReset(adm, u) {
+  if ((await sha('mf1-admin:' + adm)) !== ADMIN_HASH) return { err: 'Admin kodu səhvdir.' };
+  const acc = await accGet(u); if (!acc) return { err: 'Belə istifadəçi tapılmadı.' };
+  const code = newCode(), salt = newCode() + newCode(), body = Object.assign({}, acc, { salt, hash: await sha(salt + ':' + code) });
+  const loc = LS.get('accounts', {}); if (loc[u]) { loc[u] = body; LS.set('accounts', loc); }
+  if (st.db) { try { if (window.claude && window.claude.fb) await st.db.doc('resets/' + u).set({ k: adm, t: Date.now() }); await st.db.doc('accounts/' + u).set(body); if (window.claude && window.claude.fb) st.db.doc('resets/' + u).set(null).catch(() => {}); } catch (e) { return { err: 'Yadda saxlamaq olmadı. İnterneti yoxla.' }; } }
+  return { code, name: acc.name || u };
+}
 const PRIV_HASH = 'e3ad4f85a80fb45d17e042e0e5f4783b3d776335e33e856b1c00c91e30323b55';
 function renderProfile() {
   const P = $('#pfPage'); if (!P) return;
@@ -1555,7 +1641,7 @@ function renderProfile() {
   P.innerHTML = `
   <div class="pf-head">
     <button class="pf-ava" id="pfPick" type="button" aria-label="Şəkli dəyiş"><img src="${avOf(ME)}" alt=""><i>✎</i></button>
-    <div><b>${esc(ME.name)}</b><small>@${esc(ME.user)} · Səviyyə ${lvl}</small><div class="pf-pills"><span class="g-pill coin"><i>₼</i><b>${coinsOf().toLocaleString('az')}</b></span><span class="g-pill med"><i>★</i><b>${r.total}</b></span></div></div>
+    <div><b>${esc(ME.name)}</b><small>@${esc(ME.user)} · Səviyyə ${lvl}</small><div class="pf-pills"><span class="g-pill coin"><i>₼</i><b>${wallet().toLocaleString('az')}</b></span><span class="g-pill med"><i>★</i><b>${r.total}</b></span></div></div>
   </div>
   <div class="pf-stats"><div><b>${r.races}</b><small>Yarış</small></div><div><b>${r.wins || 0}</b><small>Qələbə</small></div><div><b>${r.med[0]}</b><small>Qızıl</small></div><div><b>${r.med[1]}</b><small>Gümüş</small></div><div><b>${r.med[2]}</b><small>Bürünc</small></div><div><b>#${g.num}</b><small>Bolid</small></div></div>
   <section class="pf-sec"><h3>Profili tənzimlə</h3>
@@ -1569,6 +1655,10 @@ function renderProfile() {
     ${unlocked ? `<p>Xüsusi profil şəkilləri:</p><div class="pf-avs big">${Object.entries(PRIV_AV).map(([k, src]) => `<button type="button" data-av="${k}" class="${ME.av === k ? 'on' : ''}"><img src="${src}" alt=""></button>`).join('')}</div><button class="pf-lock" id="pfLock" type="button">Bölməni bağla</button>`
     : `<p>Bu bölməyə daxil olmaq üçün kodu yaz.</p><div class="pf-row"><input id="pfCode" inputmode="numeric" maxlength="8" placeholder="Kod"><button class="pf-save" id="pfOpen" type="button">Aç</button></div><p class="pf-msg" id="pfCodeMsg"></p>`}
   </section>
+  <details class="pf-sec adm"><summary>🛠 Valideyn / Admin</summary><p>Uşaq kodunu unudubsa, admin kodu ilə ona yeni kod ver.</p>
+    <label class="pf-lbl">Admin kodu<div class="pf-row"><input id="admCode" autocapitalize="characters" autocomplete="off" placeholder="F1-…"></div></label>
+    <label class="pf-lbl">Uşağın istifadəçi adı<div class="pf-row"><input id="admUser" autocapitalize="none" autocomplete="off" placeholder="məs. aysel7"><button class="pf-save" id="admGo" type="button">Yeni kod</button></div></label>
+    <p class="pf-msg" id="admMsg"></p></details>
   <button class="pf-out" id="pfOut2" type="button">Hesabdan çıx</button>`;
   P.querySelectorAll('.pf-avs button[data-av]').forEach(b => b.onclick = () => { click(); accSave({ av: b.dataset.av }).then(renderProfile); });
   $('#pfNameSave').onclick = () => { const v = $('#pfNameIn').value.trim().slice(0, 16); if (v.length < 2) { $('#pfMsg').textContent = 'Ad ən az 2 hərf olsun.'; return; } accSave({ name: v }).then(() => { renderProfile(); $('#pfMsg').textContent = 'Ad yadda saxlanıldı.'; }); };
@@ -1577,6 +1667,7 @@ function renderProfile() {
   $('#pfFile').onchange = e => { const f = e.target.files[0]; if (!f) return; const img = new Image(); img.onload = () => { const S = 192, c = document.createElement('canvas'); c.width = c.height = S; const k = Math.max(S / img.width, S / img.height), w = img.width * k, h = img.height * k; c.getContext('2d').drawImage(img, (S - w) / 2, (S - h) / 2, w, h); const url = c.toDataURL('image/jpeg', .82); URL.revokeObjectURL(img.src); accSave({ av: 'photo', photo: url }).then(() => { renderProfile(); $('#pfMsg').textContent = 'Şəkil yeniləndi.'; }); }; img.onerror = () => { $('#pfMsg').textContent = 'Bu faylı açmaq olmadı.'; }; img.src = URL.createObjectURL(f); };
   if ($('#pfOpen')) $('#pfOpen').onclick = async () => { const ok = (await sha('mf1-private:' + $('#pfCode').value.trim())) === PRIV_HASH; if (ok) { LS.set('priv', true); click(); renderProfile(); } else $('#pfCodeMsg').textContent = 'Kod səhvdir.'; };
   if ($('#pfLock')) $('#pfLock').onclick = () => { LS.set('priv', false); renderProfile(); };
+  $('#admGo').onclick = async () => { const m = $('#admMsg'); m.style.color = ''; m.textContent = 'Yoxlanılır…'; const r = await adminReset($('#admCode').value.trim().toUpperCase(), normUser($('#admUser').value)); if (r.err) { m.style.color = '#ff6b6b'; m.textContent = r.err; return; } m.innerHTML = `${esc(r.name)} üçün yeni kod: <b class="adm-code">${r.code}</b><br>Bu kodu uşağa ver, köhnə kod artıq işləmir.`; };
   $('#pfOut2').onclick = () => { ME = null; LS.set('session', null); LS.set('priv', false); showAuth('login', 'Hesabdan çıxdın.'); renderProfile(); updTop(); };
 }
 function needAuth() { if (ME) return false; if (LS.get('guestRaces', 0) >= 1) { showAuth('reg', 'Pulsuz yarışın bitdi. Davam etmək üçün qeydiyyatdan keç.'); return true; } return false; }
