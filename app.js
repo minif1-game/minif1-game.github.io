@@ -1559,6 +1559,7 @@ async function connect() {
       if (Object.keys(st.mine.pilots).length) saveLeague();
     }
     renderHome();
+    if (window.claude && window.claude.mail) { $('#rgMailL').hidden = false; finishVerify(); const p = LS.get('pendingU', null); if (p && ME && p.u === ME.user) showWait(p.u); }
   } catch (e) {}
 }
 function maybeJoin() {
@@ -1610,23 +1611,28 @@ $('#auReg').addEventListener('submit', async e => {
   e.preventDefault(); const err = $('#rgErr'), name = $('#rgName').value.trim().slice(0, 16), u = normUser($('#rgUser').value), btn = e.target.querySelector('button[type=submit]');
   if (name.length < 2) { err.textContent = 'Pilotun adını yaz.'; return; }
   if (!validUser(u)) { err.textContent = 'İstifadəçi adı 3–16 simvol olsun: kiçik latın hərfləri, rəqəm və _'; return; }
+  const MAIL = mailOn(), email = MAIL ? $('#rgMail').value.trim().toLowerCase() : '';
+  if (MAIL && !/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email)) { err.textContent = 'Düzgün email yaz (təsdiq linki ora gedəcək).'; return; }
   btn.disabled = true; err.textContent = '';
   if (await accGet(u)) { err.textContent = 'Bu istifadəçi adı artıq tutulub. Başqasını seç.'; btn.disabled = false; return; }
-  const code = newCode(), salt = newCode() + newCode(), body = { name, av: regAv, salt, hash: await sha(salt + ':' + code), t: Date.now() };
+  const code = newCode(), salt = newCode() + newCode(), body = { name, av: regAv, salt, hash: await sha(salt + ':' + code), t: Date.now() }; if (MAIL) body.status = 'pending';
   const r = await accPut(u, body); btn.disabled = false;
   if (r === 'taken' || r === 'busy') { err.textContent = 'Bu istifadəçi adı artıq tutulub. Başqasını seç.'; return; }
+  if (MAIL) { try { await st.db.doc('pending/' + u).set({ name, user: u, t: Date.now(), verified: false, uid: st.uid || '' }); } catch (e) {} let sent = true; try { await window.claude.mail.send(email, u); } catch (e) { sent = false; } $('#cdMail').hidden = false; $('#cdMail').innerHTML = sent ? `📧 <b>${esc(email)}</b> ünvanına təsdiq linki göndərdik. Linkə bas, sonra admin hesabını qəbul edəcək.` : 'Email göndərmək alınmadı. Gözləmə ekranında yenidən göndər.'; $('#cdGo').textContent = 'Davam et'; LS.set('pendingU', { u, email }); }
+  else { $('#cdMail').hidden = true; $('#cdGo').textContent = 'Yarışa keç'; }
   ME = { user: u, name, av: regAv }; LS.set('session', ME); LS.set('guestRaces', 0);
   $('#auReg').hidden = true; $('#auLogin').hidden = true; $('.au-tabs').hidden = true; $('#auGuest').hidden = true;
   $('#cdName').textContent = name; $('#cdCode').textContent = code; $('#cdUser').textContent = u; $('#auCode').hidden = false; cheer();
 });
 $('#cdCopy').addEventListener('click', () => { const t = 'Mini F1 · istifadəçi adı: ' + $('#cdUser').textContent + ' · kod: ' + $('#cdCode').textContent; try { navigator.clipboard.writeText(t).then(() => { $('#cdCopy').textContent = 'Kopyalandı'; }); } catch (e) {} });
-$('#cdGo').addEventListener('click', () => { $('#auth').hidden = true; applySession(); });
+$('#cdGo').addEventListener('click', () => { const p = LS.get('pendingU', null); if (mailOn() && p && ME && p.u === ME.user) { showWait(p.u); return; } $('#auth').hidden = true; applySession(); });
 $('#auLogin').addEventListener('submit', async e => {
   e.preventDefault(); const err = $('#liErr'), u = normUser($('#liUser').value), code = $('#liCode').value.trim().toUpperCase(), btn = e.target.querySelector('button[type=submit]');
   if (!u || !code) { err.textContent = 'İstifadəçi adı və kodu yaz.'; return; }
   btn.disabled = true; err.textContent = '';
   const acc = await accGet(u); btn.disabled = false;
   if (!acc || typeof acc.salt !== 'string' || (await sha(acc.salt + ':' + code)) !== acc.hash) { err.textContent = 'İstifadəçi adı və ya kod səhvdir.'; return; }
+  if (acc.status === 'pending' && mailOn()) { const s = await regState(u); if (s.ok === false) { err.textContent = 'Bu hesab admin tərəfindən qəbul edilmədi.'; return; } if (s.ok !== true) { ME = { user: u, name: String(acc.name || u).slice(0, 16), av: acc.av || '#e10600' }; LS.set('session', ME); showWait(u); return; } }
   ME = { user: u, name: String(acc.name || u).slice(0, 16), av: (AVS.some(x => x[0] === acc.av) || acc.av === 'photo' || PRIV_AV[acc.av]) ? acc.av : '#e10600', photo: typeof acc.photo === 'string' && acc.photo.startsWith('data:image/') ? acc.photo : '' }; if (acc.shop && typeof acc.shop === 'object') ME.shop = acc.shop; LS.set('session', ME); if (acc.garage && typeof acc.garage === 'object') { if (acc.garage.a) LS.set('g.u_' + u, acc.garage.a); if (acc.garage.b) LS.set('g.u_' + u + '_2', acc.garage.b); }
   $('#auth').hidden = true; applySession(); whoosh();
 });
@@ -1670,6 +1676,7 @@ function renderProfile() {
     ${unlocked ? `<p>Xüsusi profil şəkilləri:</p><div class="pf-avs big">${Object.entries(PRIV_AV).map(([k, src]) => `<button type="button" data-av="${k}" class="${ME.av === k ? 'on' : ''}"><img src="${src}" alt=""></button>`).join('')}</div><button class="pf-lock" id="pfLock" type="button">Bölməni bağla</button>`
     : `<p>Bu bölməyə daxil olmaq üçün kodu yaz.</p><div class="pf-row"><input id="pfCode" inputmode="numeric" maxlength="8" placeholder="Kod"><button class="pf-save" id="pfOpen" type="button">Aç</button></div><p class="pf-msg" id="pfCodeMsg"></p>`}
   </section>
+  <button class="pf-save" id="pfAdmPanel" type="button" style="width:100%;margin-bottom:12px">🛡 Admin bölməsi: yeni qoşulanlar</button>
   <details class="pf-sec adm"><summary>🛠 Valideyn / Admin</summary><p>Uşaq kodunu unudubsa, admin kodu ilə ona yeni kod ver.</p>
     <label class="pf-lbl">Admin kodu<div class="pf-row"><input id="admCode" autocapitalize="characters" autocomplete="off" placeholder="F1-…"></div></label>
     <label class="pf-lbl">Uşağın istifadəçi adı<div class="pf-row"><input id="admUser" autocapitalize="none" autocomplete="off" placeholder="məs. aysel7"><button class="pf-save" id="admGo" type="button">Yeni kod</button></div></label>
@@ -1682,9 +1689,55 @@ function renderProfile() {
   $('#pfFile').onchange = e => { const f = e.target.files[0]; if (!f) return; const img = new Image(); img.onload = () => { const S = 192, c = document.createElement('canvas'); c.width = c.height = S; const k = Math.max(S / img.width, S / img.height), w = img.width * k, h = img.height * k; c.getContext('2d').drawImage(img, (S - w) / 2, (S - h) / 2, w, h); const url = c.toDataURL('image/jpeg', .82); URL.revokeObjectURL(img.src); accSave({ av: 'photo', photo: url }).then(() => { renderProfile(); $('#pfMsg').textContent = 'Şəkil yeniləndi.'; }); }; img.onerror = () => { $('#pfMsg').textContent = 'Bu faylı açmaq olmadı.'; }; img.src = URL.createObjectURL(f); };
   if ($('#pfOpen')) $('#pfOpen').onclick = async () => { const ok = (await sha('mf1-private:' + $('#pfCode').value.trim())) === PRIV_HASH; if (ok) { LS.set('priv', true); click(); renderProfile(); } else $('#pfCodeMsg').textContent = 'Kod səhvdir.'; };
   if ($('#pfLock')) $('#pfLock').onclick = () => { LS.set('priv', false); renderProfile(); };
+  $('#pfAdmPanel').onclick = openAdmin;
   $('#admGo').onclick = async () => { const m = $('#admMsg'); m.style.color = ''; m.textContent = 'Yoxlanılır…'; const r = await adminReset($('#admCode').value.trim().toUpperCase(), normUser($('#admUser').value)); if (r.err) { m.style.color = '#ff6b6b'; m.textContent = r.err; return; } m.innerHTML = `${esc(r.name)} üçün yeni kod: <b class="adm-code">${r.code}</b><br>Bu kodu uşağa ver, köhnə kod artıq işləmir.`; };
   $('#pfOut2').onclick = () => { ME = null; LS.set('session', null); LS.set('priv', false); showAuth('login', 'Hesabdan çıxdın.'); renderProfile(); updTop(); };
 }
+
+/* ---------- email confirmation + admin approval (online version) ---------- */
+function mailOn() { return !!(window.claude && window.claude.mail && st.db); }
+async function regState(u) {
+  const out = { ok: null, verified: false };
+  try { const a = await st.db.doc('approved/' + u + '/ok').get(); if (a.exists) out.ok = a.data(); } catch (e) {}
+  try { const p = await st.db.doc('pending/' + u).get(); if (p.exists) out.verified = !!(p.data() || {}).verified; } catch (e) {}
+  return out;
+}
+let waitT = 0;
+function showWait(u) {
+  $('#auth').hidden = false; ['#auLogin', '#auReg', '#auCode', '.au-tabs', '#auGuest', '#auAdmin'].forEach(q => { const e = $(q); if (e) e.hidden = true; }); $('#auWait').hidden = false;
+  const poll = async () => {
+    const s = await regState(u); $('#wMail').className = s.verified ? 'done' : ''; $('#wAdm').className = s.ok === true ? 'done' : s.ok === false ? 'bad' : '';
+    $('#wMail').querySelector('small').textContent = s.verified ? 'Təsdiqləndi' : 'Emailindəki linkə bas';
+    $('#wAdm').querySelector('small').textContent = s.ok === true ? 'Qəbul edildi' : s.ok === false ? 'Qəbul edilmədi' : 'Admin hesabını qəbul etməlidir';
+    if (s.ok === true) { clearInterval(waitT); waitT = 0; LS.set('pendingU', null); try { const acc = await accGet(u); if (acc && acc.status === 'pending') { acc.status = 'ok'; await st.db.doc('accounts/' + u).set(acc); } } catch (e) {} cheer(); $('#auWait').hidden = true; $('#auth').hidden = true; applySession(); }
+    if (s.ok === false) { clearInterval(waitT); waitT = 0; $('#wNote').textContent = 'Admin bu hesabı qəbul etmədi. Valideynlə əlaqə saxla.'; }
+  };
+  clearInterval(waitT); waitT = setInterval(poll, 5000); poll();
+}
+$('#wResend').addEventListener('click', async () => { const p = LS.get('pendingU', null); if (!p || !p.email) { $('#wNote').textContent = 'Email bu cihazda yadda qalmayıb. Yenidən qeydiyyatdan keç və ya admindən soruş.'; return; } try { await window.claude.mail.send(p.email, p.u); $('#wNote').textContent = 'Link yenidən göndərildi: ' + p.email; } catch (e) { $('#wNote').textContent = 'Göndərmək alınmadı, bir az sonra yenə yoxla.'; } });
+$('#wOut').addEventListener('click', () => { clearInterval(waitT); waitT = 0; ME = null; LS.set('session', null); $('#auWait').hidden = true; ['.au-tabs', '#auGuest', '#auAdmin'].forEach(q => { const e = $(q); if (e) e.hidden = false; }); showAuth('login'); });
+async function finishVerify() {
+  if (!(window.claude && window.claude.mail)) return;
+  try { const r = await window.claude.mail.complete(); if (!r || !r.u) return; const ref = st.db.doc('pending/' + r.u), p = await ref.get(); if (p.exists) await ref.set(Object.assign({}, p.data(), { verified: true })); alertBox('Email təsdiqləndi! İndi admin qəbulunu gözlə.'); } catch (e) { alertBox('Təsdiq linki köhnədir və ya artıq istifadə olunub.'); }
+}
+// admin panel
+let apCodeV = '', apF = 'wait';
+function openAdmin() { $('#admPanel').hidden = false; $('#apLock').hidden = !!apCodeV; $('#apBody').hidden = !apCodeV; $('#apErr').textContent = ''; if (apCodeV) renderAdmin(); }
+$('#apX').addEventListener('click', () => { $('#admPanel').hidden = true; });
+$('#apOpen').addEventListener('click', async () => { const c = $('#apCode').value.trim(); if ((await sha('mf1-private:' + c)) !== 'e3ad4f85a80fb45d17e042e0e5f4783b3d776335e33e856b1c00c91e30323b55') { $('#apErr').style.color = '#ff6b6b'; $('#apErr').textContent = 'Kod səhvdir.'; return; } apCodeV = c; $('#apLock').hidden = true; $('#apBody').hidden = false; renderAdmin(); });
+$('#apTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; apF = b.dataset.f; $$('#apTabs button').forEach(x => x.classList.toggle('on', x === b)); renderAdmin(); });
+async function renderAdmin() {
+  const L = $('#apList');
+  if (!mailOn()) { L.innerHTML = '<p class="ap-empty">Qeydiyyat təsdiqi yalnız onlayn versiyada (minif1-game.github.io) işləyir.</p>'; return; }
+  L.innerHTML = '<p class="ap-empty">Yüklənir…</p>';
+  let rows = []; try { const s = await st.db.doc('pending').get(); const all = (s.exists && s.data()) || {}; rows = Object.keys(all).map(k => Object.assign({ user: k }, all[k])); } catch (e) { L.innerHTML = '<p class="ap-empty">Siyahını oxumaq olmadı.</p>'; return; }
+  const st2 = await Promise.all(rows.map(r => st.db.doc('approved/' + r.user + '/ok').get().then(x => x.exists ? x.data() : null).catch(() => null)));
+  rows.forEach((r, i) => r.ok = st2[i]);
+  const f = rows.filter(r => apF === 'wait' ? r.ok == null : apF === 'ok' ? r.ok === true : r.ok === false).sort((a, b) => (b.t || 0) - (a.t || 0));
+  L.innerHTML = f.length ? f.map(r => `<div class="ap-row"><div class="ap-mn"><b>${esc(r.name || r.user)}</b><small>@${esc(r.user)} · ${new Date(r.t || 0).toLocaleString('az')}</small><br><span class="ap-v${r.verified ? ' ok' : ''}">${r.verified ? '✓ Email təsdiqlənib' : '✉ Email gözləyir'}</span></div>${r.ok !== true ? `<button class="ap-acc" data-u="${esc(r.user)}" data-ok="1">Qəbul et</button>` : ''}${r.ok !== false ? `<button class="ap-rej" data-u="${esc(r.user)}" data-ok="0">${r.ok === true ? 'Ləğv et' : 'Rədd et'}</button>` : ''}</div>`).join('') : `<p class="ap-empty">${apF === 'wait' ? 'Gözləyən yoxdur.' : 'Siyahı boşdur.'}</p>`;
+  L.querySelectorAll('button[data-u]').forEach(b => b.onclick = async () => { b.disabled = true; try { await st.db.doc('approved/' + b.dataset.u).set({ k: apCodeV, ok: b.dataset.ok === '1', t: Date.now() }); click(); } catch (e) { alertBox('Yadda saxlamaq olmadı.'); } renderAdmin(); });
+}
+$('#auAdmin').addEventListener('click', openAdmin);
 function needAuth() { if (ME) return false; if (LS.get('guestRaces', 0) >= 1) { showAuth('reg', 'Pulsuz yarışın bitdi. Davam etmək üçün qeydiyyatdan keç.'); return true; } return false; }
 
 /* ---------- intro screen ---------- */

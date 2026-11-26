@@ -57,9 +57,32 @@
       onPeers(cb) { cbs.push(cb); cb({ peers }); }
     };
   }
+  // second app instance only for e-mail link confirmation (keeps the anonymous game session untouched)
+  const vAuth = firebase.initializeApp(cfg, 'verify').auth();
+  try { vAuth.setPersistence(firebase.auth.Auth.Persistence.NONE); } catch (e) {}
+  vAuth.languageCode = 'az';
+  const mail = {
+    send(email, u) {
+      const url = location.origin + location.pathname + '?verify=' + encodeURIComponent(u);
+      try { localStorage.setItem('mf1.vEmail', email); } catch (e) {}
+      return vAuth.sendSignInLinkToEmail(email, { url, handleCodeInApp: true });
+    },
+    async complete() {
+      if (!vAuth.isSignInWithEmailLink(location.href)) return null;
+      const u = new URL(location.href).searchParams.get('verify');
+      let email = null; try { email = localStorage.getItem('mf1.vEmail'); } catch (e) {}
+      if (!email) email = prompt('Təsdiq üçün emailini yaz:');
+      if (!email) return null;
+      await vAuth.signInWithEmailLink(email.trim(), location.href);
+      try { await vAuth.signOut(); } catch (e) {}
+      history.replaceState(null, '', location.pathname);
+      return { u };
+    }
+  };
   let roomP = null;
   window.claude = {
     fb: true,
+    mail,
     use(kind) {
       return ready.then(u => {
         if (kind === 'db') return db;
