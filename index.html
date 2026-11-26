@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mini F1 Grand Prix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital,wght@0,400;0,600;0,700;0,900;1,900&family=Albert+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a kids' race weekend — loud, friendly, proud, never cluttered.
+   IDEA: a street Grand Prix weekend in miniature Baku: paddock, garage, grid, podium.
+   PICTURE: a living tilt-shift city where tiny F1 cars race round the streets; the kids' own clips as pilot cards.
+   COLOUR and TYPE: black paddock + race red #E10600 + trophy gold #EDB40B, Titillium Web (F1 timing-screen lettering) + Albert Sans.
+   LAYOUT: one full screen per room of the weekend: Home, Pilots, Garage, Race, Standings. */
+:root{color-scheme:dark;--bg:#07080b;--ink:#fff;--mut:#b9bec8;--red:#E10600;--red2:#ff3b2f;--gold:#EDB40B;--lime:#edff39;--glass:rgba(16,17,22,.62);--line:rgba(255,255,255,.14);--studio:#6b879d}
+:root[data-theme=light]{color-scheme:dark}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Albert Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:clip}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.disp{font-family:"Titillium Web",sans-serif}
+.clip{clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:0 26px;border:0;font-family:"Titillium Web",sans-serif;font-weight:700;font-size:17px;letter-spacing:.01em;text-transform:uppercase;text-decoration:none;transition:transform .15s,filter .15s}
+.btn:hover{filter:brightness(1.12)}.btn:active{transform:translateY(1px)}
+.btn.red{background:var(--red);color:#fff}.btn.white{background:#fff;color:#0b0b0f}.btn.ghost{background:rgba(255,255,255,.1);color:#fff;border:1px solid var(--line)}
+.btn svg{width:20px;height:20px}
+.glass{background:linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,0) 55%),var(--glass);backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);border:1px solid rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -12px 30px rgba(0,0,0,.25),0 18px 40px rgba(0,0,0,.35)}
+
+/* header */
+.top{position:fixed;inset:0 0 auto 0;z-index:40;display:flex;align-items:center;gap:18px;padding:14px clamp(16px,4vw,48px);background:linear-gradient(180deg,rgba(0,0,0,.72),rgba(0,0,0,0))}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff}
+.logo svg{width:42px;height:28px}
+.logo b{font:italic 900 22px/1 "Titillium Web",sans-serif;letter-spacing:-.02em}
+.nav{display:flex;gap:4px;margin-left:auto}
+.nav a{padding:9px 14px;border-radius:8px;color:#e9ecf1;text-decoration:none;font-weight:600;font-size:15px}
+.nav a:hover{background:rgba(255,255,255,.1)}
+.nav a.on{background:rgba(255,255,255,.16);color:#fff}
+.online{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.1);white-space:nowrap}
+.online i{width:8px;height:8px;border-radius:50%;background:#7a7f8a}
+.online.live i{background:#2fe06b;box-shadow:0 0 10px #2fe06b}
+.burger{display:none;width:44px;height:44px;border:0;border-radius:10px;background:rgba(255,255,255,.12)}
+@media(max-width:860px){.nav{position:fixed;top:66px;right:12px;flex-direction:column;min-width:220px;padding:10px;border-radius:14px;background:rgba(14,15,20,.94);border:1px solid var(--line);display:none}.nav.open{display:flex}.nav a{padding:12px 14px;font-size:17px}.burger{display:grid;place-items:center;margin-left:auto}.online{display:none}}
+
+.view{display:none;min-height:100dvh}.view.on{display:block}
+
+/* HOME */
+#v-home{position:relative;height:100dvh;min-height:620px;overflow:hidden;background:#cfc9bb}
+#city{position:absolute;inset:0;width:100%;height:100%}
+.tilt{position:absolute;left:0;right:0;pointer-events:none;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+.tilt.t{top:0;height:34%;mask:linear-gradient(#000 20%,transparent);-webkit-mask:linear-gradient(#000 20%,transparent)}
+.tilt.b{bottom:0;height:34%;mask:linear-gradient(transparent,#000 80%);-webkit-mask:linear-gradient(transparent,#000 80%)}
+.shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(0,0,0,.66) 0%,rgba(0,0,0,.28) 45%,rgba(0,0,0,0) 70%),linear-gradient(0deg,rgba(0,0,0,.5),transparent 35%)}
+.hero{position:absolute;left:clamp(20px,5vw,64px);top:clamp(96px,16vh,150px);max-width:560px;z-index:2}
+.kick{display:flex;align-items:center;gap:10px;margin:0 0 14px;font-weight:600;color:#fff}
+.kick svg{width:28px;height:18px;border-radius:2px}
+.hero h1{margin:0;font:900 clamp(42px,6.2vw,72px)/.92 "Titillium Web",sans-serif;text-transform:uppercase;letter-spacing:-.04em;text-wrap:balance}
+.hero h1 em{font-style:italic;color:var(--red2)}
+.hero p.lead{margin:16px 0 24px;font-size:18px;color:#eef0f4;max-width:420px}
+.hero .row{display:flex;gap:12px;flex-wrap:wrap}
+.duo{position:absolute;right:clamp(16px,4vw,56px);top:50%;transform:translateY(-46%);display:flex;gap:14px;z-index:2}
+.pcard{position:relative;width:clamp(150px,15vw,210px);border-radius:22px;overflow:hidden;text-decoration:none;color:#fff;background:#000;border:1px solid rgba(255,255,255,.18);box-shadow:0 24px 50px rgba(0,0,0,.45);transition:transform .25s}
+.pcard:hover{transform:translateY(-6px)}
+.pcard video{display:block;width:100%;aspect-ratio:3/4;object-fit:cover}
+.pcard .tag{display:flex;align-items:baseline;justify-content:space-between;padding:10px 14px 12px;background:#0b0c10}
+.pcard .tag b{font:900 22px/1 "Titillium Web",sans-serif;text-transform:uppercase;letter-spacing:-.02em}
+.pcard .tag span{font:900 italic 26px/1 "Titillium Web",sans-serif;color:var(--gold)}
+.pcard:nth-child(2){margin-top:46px}
+.dock{position:absolute;left:clamp(16px,5vw,64px);right:clamp(16px,5vw,64px);bottom:clamp(16px,4vh,36px);z-index:2;display:flex;gap:12px;flex-wrap:wrap;pointer-events:none}
+.dock>*{pointer-events:auto}
+.stat{border-radius:18px;padding:14px 18px;min-width:150px}
+.stat small{display:block;color:#d6dae2;font-size:13px}
+.stat b{display:block;font:900 30px/1.1 "Titillium Web",sans-serif}
+.stat.lead b{color:var(--gold)}
+@media(max-width:900px){.duo{position:relative;transform:none;justify-content:flex-start;margin:22px 20px 0;right:auto;top:auto}.hero{position:relative;left:auto;top:auto;padding:96px 20px 0}.pcard{width:clamp(130px,40vw,190px)}.pcard .tag b{font-size:18px}.pcard .tag span{font-size:22px}.pcard:nth-child(2){margin-top:26px}#v-home{height:auto;min-height:100dvh;padding-bottom:24px}.dock{position:relative;left:auto;right:auto;bottom:auto;margin:20px 20px 0;gap:8px}.stat{min-width:0;flex:1 1 40%;padding:10px 12px}.stat b{font-size:24px}}
+
+/* SECTIONS */
+.page{padding:96px clamp(16px,5vw,64px) 48px;max-width:1240px;margin:0 auto}
+.page h2{margin:0 0 6px;font:900 clamp(34px,5vw,52px)/1 "Titillium Web",sans-serif;text-transform:uppercase;letter-spacing:-.03em}
+.page .sub{margin:0 0 26px;color:var(--mut);font-size:17px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+.tabs button{min-height:44px;padding:0 18px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);font-weight:600}
+.tabs button.on{background:#fff;color:#0b0b0f;border-color:#fff}
+
+/* PILOTS */
+.pilot{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:clamp(20px,4vw,56px);align-items:end}
+.pframe{position:relative;border-radius:28px;overflow:hidden;background:#000;aspect-ratio:3/4;max-height:76vh;border:1px solid rgba(255,255,255,.14)}
+.pframe video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pframe .fog{position:absolute;left:0;right:0;bottom:0;height:42%;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);mask:linear-gradient(transparent,#000 60%);-webkit-mask:linear-gradient(transparent,#000 60%)}
+.pframe .num{position:absolute;right:18px;bottom:10px;font:900 italic 110px/.8 "Titillium Web",sans-serif;color:var(--gold);text-shadow:0 6px 30px rgba(0,0,0,.5)}
+.loc{display:flex;align-items:center;gap:10px;color:#cfd3da;font-size:16px;margin-bottom:10px}
+.loc svg{width:30px;height:20px;border-radius:3px}
+.pname{margin:0;font:700 clamp(64px,11vw,140px)/.82 "Titillium Web",sans-serif;letter-spacing:-.05em;text-transform:uppercase}
+.reveal{animation:speed .8s cubic-bezier(.16,1,.3,1) both}
+@keyframes speed{0%{opacity:0;transform:translateX(-60%) skewX(-8deg);filter:blur(8px)}60%{opacity:1;transform:translateX(3%) skewX(-2deg);filter:blur(0)}100%{transform:none}}
+.pteam{margin:14px 0 22px;color:var(--mut);font-size:17px}
+.pteam b{color:#fff}
+.nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:22px}
+.nums div{border-top:1px solid var(--line);padding-top:10px}
+.nums small{display:block;color:var(--mut);font-size:13px}
+.nums b{display:block;font:700 clamp(40px,6vw,74px)/.85 "Titillium Web",sans-serif;letter-spacing:-.05em;background:linear-gradient(#fff 10%,rgba(255,255,255,.35));-webkit-background-clip:text;background-clip:text;color:transparent}
+.nums div:first-child b{background:none;color:var(--gold)}
+.medals{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+.medal{display:flex;align-items:center;gap:8px;font-weight:700;font-size:18px}
+.disc{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:900 13px/1 "Titillium Web",sans-serif;color:#2a1d00;box-shadow:inset 0 -3px 0 rgba(0,0,0,.2),inset 0 2px 0 rgba(255,255,255,.5)}
+.d1{background:radial-gradient(circle at 35% 30%,#fff3b0,#edb40b 55%,#a87800)}
+.d2{background:radial-gradient(circle at 35% 30%,#fff,#c3c8d0 55%,#7f8691)}
+.d3{background:radial-gradient(circle at 35% 30%,#ffd9b0,#c97b3a 55%,#8a4a17);color:#2b1200}
+@media(max-width:760px){.pilot{grid-template-columns:1fr}.pframe{max-height:62vh}.nums{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* GARAGE */
+.studio{position:relative;border-radius:16px;border:3px solid #fff;background:radial-gradient(120% 90% at 50% 20%,#86a2b6,#6b879d 55%,#4f6a80);overflow:hidden}
+.studio svg.car{display:block;width:100%;height:auto}
+.hs{position:absolute;width:48px;height:48px;margin:-24px 0 0 -24px;border:0;background:none;display:grid;place-items:center}
+.hs i{width:26px;height:26px;border-radius:50%;background:var(--lime);display:grid;place-items:center;box-shadow:0 0 0 6px rgba(237,255,57,.25);transition:transform .2s}
+.hs i::before{content:"";width:12px;height:12px;background:linear-gradient(#10190c,#10190c) center/12px 2px no-repeat,linear-gradient(#10190c,#10190c) center/2px 12px no-repeat}
+.hs:hover i,.hs.on i{transform:scale(1.2)}
+.hs span{position:absolute;bottom:46px;white-space:nowrap;background:#10190c;color:var(--lime);font-size:13px;font-weight:600;padding:4px 10px;border-radius:6px;opacity:0;transition:opacity .2s;pointer-events:none}
+.hs:hover span,.hs:focus-visible span,.hs.on span{opacity:1}
+.gbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.gpanel{margin-top:14px;border-radius:12px;background:#35586e;border:1px solid rgba(255,255,255,.18);padding:18px;min-height:120px}
+.gpanel h3{margin:0 0 4px;font:700 24px/1.1 "Titillium Web",sans-serif}
+.gpanel p{margin:0 0 14px;color:#e1eaf0}
+.sw{display:flex;gap:10px;flex-wrap:wrap}
+.sw button{width:48px;height:48px;border-radius:50%;border:3px solid rgba(255,255,255,.4)}
+.sw button.on{border-color:#fff;box-shadow:0 0 0 3px var(--lime)}
+.ty{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.ty button{border-radius:12px;border:2px solid rgba(255,255,255,.2);background:rgba(0,0,0,.18);padding:12px;text-align:left}
+.ty button.on{border-color:var(--lime)}
+.ty b{display:flex;align-items:center;gap:8px;font:700 19px "Titillium Web",sans-serif}
+.ty b i{width:16px;height:16px;border-radius:50%;border:4px solid}
+.ty small{display:block;color:#e1eaf0;font-size:14px;line-height:1.35;margin-top:4px}
+.numin{display:flex;align-items:center;gap:10px}
+.numin input{width:90px;height:48px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.25);font:900 24px "Titillium Web",sans-serif;text-align:center}
+.xr{transition:opacity .5s}
+@media(max-width:600px){.ty{grid-template-columns:1fr}.hs{width:44px;height:44px;margin:-22px 0 0 -22px}}
+
+/* RACE LOBBY */
+.lobby{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+.tracks{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.tk{position:relative;border-radius:16px;border:2px solid var(--line);background:#101218;padding:10px;text-align:left}
+.tk.on{border-color:var(--red)}
+.tk canvas{display:block;width:100%;aspect-ratio:16/10;border-radius:10px}
+.tk b{display:block;margin-top:8px;font:700 19px/1.1 "Titillium Web",sans-serif}
+.tk small{color:var(--mut)}
+.tk .wait{position:absolute;top:16px;right:16px;font-size:12px;font-weight:700;background:#2fe06b;color:#04210f;padding:3px 8px;border-radius:999px}
+.side{border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:16px}
+.side h3{margin:0;font:700 20px "Titillium Web",sans-serif}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips button{min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);font-weight:600}
+.chips button.on{background:#fff;color:#000}
+.side input[type=text]{width:100%;height:44px;border-radius:10px;border:1px solid var(--line);background:rgba(0,0,0,.3);padding:0 12px;font-size:16px}
+.peers{display:flex;flex-direction:column;gap:6px;font-size:15px}
+.peers div{display:flex;align-items:center;gap:8px}
+.peers i{width:12px;height:12px;border-radius:3px}
+@media(max-width:900px){.lobby{grid-template-columns:1fr}}
+
+/* GAME */
+#game{position:fixed;inset:0;z-index:60;background:#87b6d8;display:none;touch-action:none;user-select:none;-webkit-user-select:none;overflow:hidden}
+#game.on{display:block}
+#gc{position:absolute;inset:0;width:100%;height:100%;display:block}
+.speedfx{position:absolute;inset:0;pointer-events:none;opacity:0;background:repeating-conic-gradient(from 0deg at 50% 55%,rgba(255,255,255,.0) 0deg 3deg,rgba(255,255,255,.16) 3deg 3.6deg);mask:radial-gradient(circle at 50% 55%,transparent 32%,#000 75%);-webkit-mask:radial-gradient(circle at 50% 55%,transparent 32%,#000 75%)}
+.hud{position:absolute;pointer-events:none}
+.lapbar{top:10px;left:50%;transform:translateX(-50%);display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);width:min(520px,calc(100% - 210px));height:50px;border-radius:12px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.lb-l,.lb-r{display:flex;align-items:center;gap:8px;padding:0 14px;font:700 15px/1 "Titillium Web",sans-serif;text-transform:uppercase;white-space:nowrap;overflow:hidden}
+.lb-l{background:linear-gradient(90deg,#1d3f8f,#203255);color:#fff}
+.lb-r{background:linear-gradient(90deg,#3b1d2a,#8e1b2b);justify-content:flex-end;color:#fff}
+.lb-r svg{width:22px;height:22px;flex:none}
+.lb-c{background:#14161c;color:#fff;text-align:center;padding:4px 16px;font-family:"Titillium Web",sans-serif}
+.lb-c small{display:block;font-size:12px;line-height:1.2;color:#c9cdd6}.lb-c b{font:900 22px/1 "Titillium Web",sans-serif}
+.tower{left:12px;top:72px;margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px;min-width:150px}
+.tower li{display:grid;grid-template-columns:26px 4px minmax(0,1fr) auto;gap:7px;align-items:center;height:28px;padding:0 9px 0 0;background:rgba(14,16,22,.82);color:#fff;font:700 14px/1 "Titillium Web",sans-serif;border-radius:4px;overflow:hidden}
+.tower li b{background:#fff;color:#111;height:100%;display:grid;place-items:center}
+.tower li i{height:16px;border-radius:2px}
+.tower li.me{background:#fff;color:#111}.tower li.me b{background:var(--red);color:#fff}
+.tower li small{font-size:11px;color:#9aa0ab;font-weight:600}
+.tower li.pit small{color:var(--gold)}
+.dcard{left:12px;bottom:12px;width:250px;border-radius:10px;overflow:hidden;background:rgba(12,14,20,.86);color:#fff;font-family:"Titillium Web",sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.dc-top{display:flex;align-items:stretch;background:#fff;color:#111;height:32px}
+.dc-pos{background:var(--red);color:#fff;font:900 17px/32px "Titillium Web",sans-serif;padding:0 10px}
+.dc-top b{font:700 17px/32px "Titillium Web",sans-serif;padding:0 10px;text-transform:uppercase;white-space:nowrap;overflow:hidden}
+.dc-mid{display:flex;align-items:flex-end;gap:10px;padding:8px 10px 2px;background:linear-gradient(120deg,#22346e,#121726 70%)}
+.dc-mid img{width:58px;height:64px;object-fit:cover;object-position:50% 8%;border-radius:6px;background:#000;flex:none}
+.dc-spd{margin-left:auto;text-align:right}.dc-spd b{font:900 italic 44px/.9 "Titillium Web",sans-serif}.dc-spd small{display:block;font-size:12px;color:#c9cdd6}
+.bar2{position:relative;display:flex;align-items:center;gap:8px;height:22px;margin:6px 10px 0;font:700 12px/1 "Titillium Web",sans-serif}
+.bar2::before{content:"";position:absolute;left:28px;right:46px;top:7px;height:8px;border-radius:4px;background:rgba(255,255,255,.15)}
+.bar2 i{position:absolute;left:28px;top:7px;height:8px;border-radius:4px;width:calc(100% - 74px);transform-origin:left}
+.bar2 span{width:20px}.bar2 em{margin-left:auto;font-style:normal}
+.ers i{background:linear-gradient(90deg,#00d2ff,#7df9ff)}
+.tyr i{background:linear-gradient(90deg,#2fe06b,#edb40b)}
+.tl{display:grid;place-items:center;width:20px!important;height:20px;border-radius:50%;border:3px solid #e8202a;font:900 11px/1 "Titillium Web",sans-serif}
+.dc-time{display:flex;justify-content:space-between;gap:8px;padding:6px 10px 9px;font-size:13px;color:#dfe3ea;font-variant-numeric:tabular-nums}
+#mini{position:absolute;right:12px;top:72px;width:160px;height:112px;border-radius:12px;background:rgba(0,0,0,.42);pointer-events:none}
+.exit{position:absolute;top:10px;left:12px;height:44px;padding:0 14px;border-radius:999px;border:0;background:rgba(0,0,0,.6);font-weight:700;display:flex;align-items:center;gap:6px}
+.cam{position:absolute;top:10px;right:12px;height:44px;padding:0 14px;border-radius:999px;border:0;background:rgba(0,0,0,.6);font-weight:700;display:flex;align-items:center;gap:6px;font-size:14px}
+.cam svg{width:20px;height:20px}
+.rbtns{position:absolute;right:14px;bottom:14px;display:flex;align-items:center;gap:12px}
+.pit{height:52px;padding:0 22px;border:0;border-radius:10px;background:#ffd400;color:#111;font:900 20px "Titillium Web",sans-serif;box-shadow:0 6px 0 #b39500,0 10px 24px rgba(0,0,0,.35)}
+.pit:active{transform:translateY(3px);box-shadow:0 3px 0 #b39500}
+.pit.warn{animation:pulse 1s infinite}
+@keyframes pulse{50%{background:#fff27a}}
+.bst{width:66px;height:66px;border-radius:50%;border:3px solid #fff;background:var(--lime);display:grid;place-items:center;box-shadow:0 0 0 0 rgba(237,255,57,.6),0 10px 24px rgba(0,0,0,.35)}
+.bst svg{width:32px;height:32px}.bst.low{background:#59612b;border-color:#888}.bst.on{box-shadow:0 0 0 10px rgba(237,255,57,.35)}
+.lights{position:absolute;left:50%;top:76px;transform:translateX(-50%);display:flex;gap:10px;padding:12px 16px;border-radius:14px;background:#0b0b0d;box-shadow:0 20px 50px rgba(0,0,0,.6)}
+.lights i{width:42px;height:42px;border-radius:50%;background:#2a0505;border:3px solid #000}
+.lights i.lit{background:radial-gradient(circle at 40% 35%,#ff8a80,#ff1a0d 55%,#9c0000);box-shadow:0 0 24px #ff1a0d}
+.go{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);font:900 italic 120px/1 "Titillium Web",sans-serif;color:#2fe06b;text-shadow:0 8px 40px rgba(0,0,0,.6);pointer-events:none}
+.pitbox{position:absolute;left:50%;top:30%;transform:translateX(-50%);min-width:280px;padding:14px 20px;border-radius:14px;background:rgba(10,12,18,.9);border:2px solid #ffd400;text-align:center;font-family:"Titillium Web",sans-serif;pointer-events:none}
+.pitbox b{display:block;color:#ffd400;font:900 italic 34px/1 "Titillium Web",sans-serif}
+.pitbox span{display:block;margin:4px 0 10px;font-weight:600}
+.pb{height:10px;border-radius:5px;background:rgba(255,255,255,.15);overflow:hidden}.pb i{display:block;height:100%;width:100%;background:#ffd400;transform-origin:left}
+.hint{position:absolute;left:50%;bottom:150px;transform:translateX(-50%);padding:10px 16px;border-radius:10px;background:rgba(0,0,0,.75);font-weight:600;white-space:nowrap;pointer-events:none;animation:pulse2 1s infinite}
+@keyframes pulse2{50%{opacity:.6}}
+.touch{position:absolute;bottom:14px;display:none;gap:12px}
+.touch button{width:80px;height:80px;border-radius:50%;border:2px solid rgba(255,255,255,.5);background:rgba(0,0,0,.4);display:grid;place-items:center;touch-action:none}
+.touch button svg{width:36px;height:36px}
+.touch button.dn{background:rgba(255,255,255,.35)}
+.touch.l{left:14px}.touch.r{right:14px}
+#game.touchy .touch.l{display:flex}#game.touchy.pro .touch.r{display:flex}
+#game.touchy .dcard{left:auto;right:12px;bottom:auto;top:192px;width:210px}
+#game.touchy .rbtns{bottom:14px}
+#game.touchy.pro .rbtns{bottom:108px}
+@media(max-width:700px){.tower{display:none}.lapbar{width:calc(100% - 24px);top:62px;height:42px}.lb-l,.lb-r{font-size:12px;padding:0 8px}.lb-c b{font-size:18px}#game #mini{top:114px;width:110px;height:78px}.dcard{width:180px}#game.touchy .dcard{top:114px;left:12px;right:auto;width:180px}.dc-time{display:none}.dc-spd b{font-size:34px}.dc-mid img{width:44px;height:48px}.go{font-size:84px}.lights{top:116px}.lights i{width:32px;height:32px}.pit{height:46px;font-size:17px;padding:0 16px}.bst{width:58px;height:58px}}
+@media(max-height:500px){.tower{display:none}#game #mini{display:none}.dcard{transform:scale(.78);transform-origin:left bottom}#game.touchy .dcard{top:62px;right:12px;left:auto;transform-origin:right top}.dc-time{display:none}.lights{top:62px}.go{font-size:80px}}
+.res{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,0,.55);padding:16px}
+.res.on{display:grid}
+.rcard{width:min(520px,100%);border-radius:22px;padding:22px;max-height:92dvh;overflow:auto}
+.rcard h3{margin:0;font:900 italic 54px/1 "Titillium Web",sans-serif;text-transform:uppercase}
+.rcard .pts{color:var(--gold);font:700 20px "Titillium Web",sans-serif;margin:4px 0 14px}
+.rlist{display:flex;flex-direction:column;gap:6px;margin:0 0 18px;padding:0;list-style:none}
+.rlist li{display:grid;grid-template-columns:34px 14px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.06);font-weight:600}
+.rlist li.me{background:rgba(225,6,0,.35)}
+.rlist li i{width:14px;height:14px;border-radius:3px}
+.rlist .t{font-variant-numeric:tabular-nums;color:#dfe3ea;white-space:nowrap}
+.studio3d{position:relative;border-radius:16px;overflow:hidden;border:3px solid #fff;aspect-ratio:16/8;min-height:300px;background:#3a3d44;touch-action:pan-y}
+.studio3d canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab}
+.ghint{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);padding:6px 12px;border-radius:999px;background:rgba(0,0,0,.5);font-size:13px;pointer-events:none}
+.livs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.livs button{border-radius:12px;border:2px solid rgba(255,255,255,.2);background:rgba(0,0,0,.2);padding:8px;text-align:left;font-weight:600}
+.livs button.on{border-color:var(--lime)}
+.livs img{display:block;width:100%;aspect-ratio:4/1.2;object-fit:contain}
+@media(max-width:600px){.studio3d{aspect-ratio:auto;height:min(62vw,300px);min-height:0}}
+
+/* INTRO */
+#intro{position:fixed;inset:0;z-index:100;background:#262628;overflow:hidden;display:flex;flex-direction:column;align-items:center;color:#fff;transition:opacity .5s}
+#intro.out{opacity:0;pointer-events:none}
+.i-dots{position:absolute;inset:0;background:radial-gradient(rgba(255,255,255,.08) 1.5px,transparent 1.6px) 0 0/28px 28px;mask:linear-gradient(#000 0,#000 25%,transparent 45%);-webkit-mask:linear-gradient(#000 0,#000 25%,transparent 45%)}
+.i-ver{position:absolute;left:18px;top:max(18px,env(safe-area-inset-top));font:600 13px "Titillium Web",sans-serif;color:#cfd2d8}
+.i-logo{position:relative;z-index:2;margin-top:clamp(48px,9vh,96px);display:flex;flex-direction:column;align-items:center;gap:4px}
+.i-logo svg{width:clamp(110px,26vw,190px);height:auto}
+.i-logo b{font:900 italic clamp(44px,11vw,84px)/.9 "Titillium Web",sans-serif;letter-spacing:-.02em}
+.i-logo span{font:700 clamp(14px,3vw,20px)/1 "Titillium Web",sans-serif;letter-spacing:.32em;color:#ff4b4b}
+.i-swoosh{position:absolute;left:0;top:18%;width:100%;height:82%;animation:swIn 1.2s cubic-bezier(.16,1,.3,1) both}
+@keyframes swIn{from{transform:translateX(30%);opacity:0}}
+.i-cars{position:absolute;left:50%;top:44%;width:min(96vw,620px);transform:translate(-50%,-50%);filter:drop-shadow(0 20px 30px rgba(0,0,0,.6));animation:carIn 1.4s .2s cubic-bezier(.16,1,.3,1) both}
+@keyframes carIn{from{transform:translate(-50%,-50%) scale(.6);opacity:0}}
+.i-tags i{position:absolute;width:34px;height:20px;background:#ff3b3b;border-radius:3px;clip-path:polygon(0 0,78% 0,100% 50%,78% 100%,0 100%);opacity:.85;animation:tag 3.5s linear infinite}
+.i-tags i::after{content:"";position:absolute;right:8px;top:7px;width:6px;height:6px;border-radius:50%;background:#262628}
+.i-tags i:nth-child(1){left:12%;top:40%;animation-delay:-.4s}.i-tags i:nth-child(2){left:30%;top:33%;animation-delay:-1.2s;transform:scale(.6)}.i-tags i:nth-child(3){left:52%;top:36%;animation-delay:-2s}.i-tags i:nth-child(4){left:70%;top:31%;animation-delay:-.8s}.i-tags i:nth-child(5){left:82%;top:52%;animation-delay:-2.6s}.i-tags i:nth-child(6){left:20%;top:55%;animation-delay:-1.7s}.i-tags i:nth-child(7){left:62%;top:58%;animation-delay:-3s}.i-tags i:nth-child(8){left:44%;top:50%;animation-delay:-.2s}.i-tags i:nth-child(9){left:8%;top:62%;animation-delay:-2.2s}
+@keyframes tag{0%{transform:translate(0,0) rotate(0)}50%{transform:translate(-14px,-22px) rotate(28deg)}100%{transform:translate(0,0) rotate(0)}}
+.i-bottom{position:absolute;left:0;right:0;bottom:max(28px,env(safe-area-inset-bottom));padding:0 24px;text-align:center;z-index:3}
+.i-bottom b{font:900 22px "Titillium Web",sans-serif;letter-spacing:.06em}
+.i-bottom p{margin:6px auto 16px;max-width:520px;font:600 clamp(16px,4vw,20px)/1.3 "Titillium Web",sans-serif;min-height:2.6em}
+.i-bar{height:8px;max-width:560px;margin:0 auto;background:#3a2a3d;overflow:hidden}.i-bar i{display:block;height:100%;width:0;background:#e10600;transition:width .3s}
+#igo{margin-top:16px;min-width:240px;animation:pulse 1.4s infinite}
+@media(min-aspect-ratio:1/1){.i-cars{top:48%;width:min(38vw,44vh,480px)}.i-logo{margin-top:24px}.i-logo svg{width:90px}.i-logo b{font-size:56px}.i-bottom p{min-height:0}}
+@media(prefers-reduced-motion:reduce){.i-tags i,.i-swoosh,.i-cars{animation:none}}
+/* manager mode */
+.gasb{display:none;width:110px;height:110px;border-radius:50%;border:4px solid #fff;background:radial-gradient(circle at 40% 35%,#3cf07c,#14a34a);color:#05240f;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 10px 26px rgba(0,0,0,.4);touch-action:none;user-select:none;-webkit-user-select:none}
+.gasb b{font:900 italic 28px/1 "Titillium Web",sans-serif}.gasb small{font-size:11px;font-weight:700}
+.gasb.dn{transform:scale(.94);background:radial-gradient(circle at 40% 35%,#8bffb2,#22c55e)}
+#game.clash .rbtns,#game.clash .dcard,#game.clash .gasb{display:none!important}
+#game.clash .touch{display:none!important}
+#game.clash .rbtns{bottom:14px!important}
+.mute{position:absolute;top:10px;right:150px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.6);display:grid;place-items:center}
+.mute svg{width:22px;height:22px}.mute.off #mwave{display:none}
+@media(max-width:700px){.mute{right:136px}}
+
+/* team manager cards (F1 Clash style) */
+.team{position:absolute;left:8px;right:8px;bottom:8px;display:none;gap:8px;justify-content:center}
+#game.clash .team{display:flex}
+.tcard{flex:1 1 0;max-width:330px;border-radius:10px;overflow:hidden;background:rgba(12,14,20,.9);color:#fff;font-family:"Titillium Web",sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.45);border:2px solid transparent}
+.tcard.focus{border-color:#e10600}
+.tc-top{display:flex;align-items:center;gap:6px;height:28px;background:#fff;color:#111;font-weight:700;font-size:15px}
+.tc-pos{background:#e10600;color:#fff;padding:0 8px;height:100%;display:grid;place-items:center;font:900 16px "Titillium Web",sans-serif}
+.tc-num{color:#e10600;font-weight:900}.tc-lap{margin-left:auto;padding-right:8px;font-size:13px}
+.tc-mid{display:grid;grid-template-columns:40px 52px minmax(0,1fr) 48px;gap:6px;align-items:center;padding:6px 6px 2px}
+.tc-pace{display:flex;flex-direction:column;gap:3px}
+.tc-pace button{height:26px;border:0;border-radius:6px;background:#2a2d36;color:#fff;font:900 18px/1 "Titillium Web",sans-serif}
+.tc-pace button.on{background:#ffd400;color:#111}
+.tc-pace button[data-p="2"].on{background:#ff3b2f;color:#fff}.tc-pace button[data-p="0"].on{background:#2fa8ff;color:#fff}
+.tc-mid img{width:52px;height:60px;object-fit:cover;object-position:50% 10%;border-radius:6px;background:#000}
+.tc-spd{text-align:right}.tc-spd b{display:block;font:900 italic 32px/.9 "Titillium Web",sans-serif}.tc-spd small{font-size:11px;color:#c9cdd6}
+.tc-ers{position:relative;height:84px;border:2px solid #39b6ff;border-radius:8px;background:#0d2333;overflow:hidden;display:grid;place-items:center;padding:0}
+.tc-ers i{position:absolute;left:0;right:0;bottom:0;height:100%;background:linear-gradient(#7df9ff,#00a2ff);opacity:.45;transform-origin:bottom}
+.tc-ers svg{position:relative;z-index:1;width:22px;height:22px;fill:#fff}
+.tc-ers.on{border-color:#edff39;box-shadow:0 0 12px #edff39}
+.tc-ty{display:flex;align-items:center;gap:6px;padding:4px 8px}
+.tc-ty .tl{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:3px solid #e8202a;font:900 11px/1 "Titillium Web",sans-serif;flex:none}
+.tc-bar{flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.15);overflow:hidden}.tc-bar i{display:block;height:100%;transform-origin:left}
+.tc-ty em{font-style:normal;font-weight:700;font-size:13px;width:38px;text-align:right}
+.tc-pit{display:block;width:calc(100% - 12px);margin:2px 6px 6px;height:36px;border:0;border-radius:6px;background:#ffd400;color:#111;font:900 17px "Titillium Web",sans-serif}
+.tc-pit.warn{animation:pulse 1s infinite}.tc-pit:disabled{background:#6b6b4a;color:#ddd}
+@media(min-width:701px){#game.clash #mini{top:72px}}
+#game.clash .tower{top:72px}
+@media(max-width:700px){.tc-mid{grid-template-columns:34px 40px minmax(0,1fr) 40px}.tc-mid img{width:40px;height:48px}.tc-spd b{font-size:24px}.tc-ers{height:70px}.tc-pace button{height:22px;font-size:16px}.tc-top{font-size:13px}}
+.tpick{position:absolute;inset:0;display:grid;place-items:end center;background:rgba(0,0,0,.4);padding:12px;z-index:5}
+.tpick[hidden]{display:none}
+.tp-card{width:min(360px,100%);background:#14161c;border-radius:14px;padding:12px;margin-bottom:190px;box-shadow:0 20px 50px rgba(0,0,0,.6)}
+.tp-card h4{margin:0 0 8px;font:900 18px "Titillium Web",sans-serif}
+.tp-card button{display:flex;align-items:center;gap:10px;width:100%;margin-top:6px;padding:8px 10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#1f222b;text-align:left;color:#fff}
+.tp-card button i{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;border:4px solid;font:900 13px "Titillium Web",sans-serif;font-style:normal;flex:none}
+.tp-card button b{display:block;font:700 16px "Titillium Web",sans-serif}.tp-card button small{color:#b9bec8;font-size:12px}
+.tp-card .tp-x{justify-content:center;background:#e1e3e8;color:#111;font-weight:700}
+.prerace{position:fixed;inset:0;z-index:80;overflow:auto;display:grid;place-items:center;background:linear-gradient(#20232b,#0e1015);padding:16px}
+.prerace[hidden]{display:none}
+.pr-card{width:min(560px,100%);color:#fff;font-family:"Titillium Web",sans-serif}
+.pr-title{display:flex;align-items:center;gap:10px;font:900 italic 26px "Titillium Web",sans-serif;border-bottom:3px solid #e10600;padding-bottom:6px}
+.pr-title svg{width:40px;height:26px}
+.pr-head{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0;color:#cfd3da;font-weight:600}.pr-head b{color:#fff}
+.pr-card h4{margin:6px 0 10px;text-align:center;font-size:17px}
+.pr-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pr-who{display:flex;align-items:center;gap:8px;margin-bottom:6px}.pr-who img{width:40px;height:44px;border-radius:6px;object-fit:cover;object-position:50% 10%}
+.pr-col button{display:flex;align-items:center;gap:10px;width:100%;margin-top:6px;padding:8px;border:2px solid transparent;border-radius:10px;background:#1f222b;color:#fff;font:700 16px "Titillium Web",sans-serif}
+.pr-col button.on{border-color:#ffd400;background:#2b2a1c}
+.pr-col button i{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;border:4px solid;font:900 13px "Titillium Web",sans-serif;font-style:normal}
+.pr-btns{display:flex;gap:10px;margin-top:14px}.pr-btns .pr-go{flex:1;background:#ffd400;color:#111}
+
+/* ===== GAME SHELL (F1 Clash style) ===== */
+header.top{display:none!important}
+body{background:#15171d}
+.gtop{position:fixed;left:0;right:0;top:0;z-index:45;display:flex;align-items:center;gap:8px;padding:max(8px,env(safe-area-inset-top)) 10px 8px;background:linear-gradient(#0d0f14,#15171dcc);border-bottom:1px solid rgba(255,255,255,.06)}
+.g-ic{width:40px;height:40px;border-radius:10px;border:0;background:#262a33;color:#fff;display:grid;place-items:center;flex:none}
+.g-ic svg{width:20px;height:20px}.g-ic.off .w{display:none}
+.g-me{display:flex;align-items:center;gap:8px;text-decoration:none;color:#fff;min-width:0;margin-right:auto}
+.g-me img{width:40px;height:40px;border-radius:10px;object-fit:cover;object-position:50% 10%;border:2px solid #ffd400;background:#000}
+.g-me b{display:block;font:700 16px/1.1 "Titillium Web",sans-serif;white-space:nowrap}.g-me small{color:#9aa0ab;font-size:12px}
+.g-pill{display:flex;align-items:center;gap:6px;height:32px;padding:0 10px 0 4px;border-radius:999px;background:#262a33;font:700 15px "Titillium Web",sans-serif;color:#fff;white-space:nowrap}
+.g-pill i{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:13px;font-weight:900}
+.g-pill.coin i{background:radial-gradient(circle at 35% 30%,#fff3b0,#edb40b 60%,#a87800);color:#5a3d00}
+.g-pill.med i{background:#2fa8ff;color:#fff}
+.g-on{display:none}
+@media(min-width:700px){.g-on{display:flex}}
+.gtabs{position:fixed;left:0;right:0;bottom:0;z-index:45;display:grid;grid-template-columns:repeat(5,1fr);padding:6px 6px max(6px,env(safe-area-inset-bottom));background:#0d0f14;border-top:1px solid rgba(255,255,255,.08)}
+.gtabs a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:#8a909c;text-decoration:none;font:700 12px "Titillium Web",sans-serif;border-radius:10px;position:relative}
+.gtabs a svg{width:26px;height:26px}
+.gtabs a.on{color:#fff}.gtabs a.on::after{content:"";position:absolute;left:22%;right:22%;bottom:-2px;height:3px;border-radius:2px;background:#e10600}
+.gtabs a.mid svg{width:30px;height:30px}
+.gtabs a.mid{color:#ffd400}
+#game.on~.gtabs,#game.on~.gtop{display:none}
+.view{padding-top:60px;padding-bottom:78px}
+.page{padding-top:20px}
+.page h2{font-size:clamp(30px,5vw,44px)}
+/* lobby */
+#v-home{position:relative;height:100dvh;min-height:560px;padding:0;overflow:hidden;background:radial-gradient(120% 70% at 50% 40%,#3a1016 0%,#16080b 45%,#0b0b0e 100%)}
+#v-home::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg,transparent 0 60px,rgba(225,6,0,.07) 60px 90px);pointer-events:none}
+#lob{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y}
+.lob-season{position:absolute;left:0;right:0;top:72px;text-align:center;color:#fff;pointer-events:none}
+.lob-season span{display:block;font:700 13px "Titillium Web",sans-serif;letter-spacing:.3em;color:#ff4b4b}
+.lob-season b{font:900 italic clamp(28px,7vw,48px)/1 "Titillium Web",sans-serif;text-transform:uppercase}
+.lob-pilots{position:absolute;left:12px;top:150px;display:flex;flex-direction:column;gap:8px;z-index:2}
+.lob-pilots button{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:12px;border:2px solid transparent;background:rgba(20,22,28,.8);color:#fff;font:700 15px "Titillium Web",sans-serif}
+.lob-pilots button img{width:38px;height:42px;border-radius:8px;object-fit:cover;object-position:50% 10%}
+.lob-pilots button.on{border-color:#ffd400}
+.lob-pilots button small{display:block;color:#ffd400;font-size:12px}
+.lob-panel{position:absolute;left:0;right:0;bottom:78px;padding:0 12px 12px;display:flex;flex-direction:column;gap:10px;z-index:2;max-width:620px;margin:0 auto}
+.lob-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.lob-stats div{background:rgba(20,22,28,.82);border-radius:10px;padding:6px 8px;color:#fff}
+.lob-stats small{display:block;color:#9aa0ab;font-size:11px}.lob-stats b{display:block;font:900 18px/1.1 "Titillium Web",sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lob-track{display:flex;align-items:center;gap:10px;padding:8px;border-radius:12px;background:#f1f2f5;color:#111}
+.lob-track canvas{width:86px;height:56px;border-radius:8px;background:#ddd;flex:none}
+.lob-track small{display:block;color:#666;font-size:12px}.lob-track b{display:block;font:900 19px/1.1 "Titillium Web",sans-serif}.lob-track span{font-size:13px;color:#444}
+.lob-track>div{flex:1;min-width:0}
+.lob-change{padding:8px 12px;border-radius:8px;background:#14161c;color:#fff;text-decoration:none;font:700 14px "Titillium Web",sans-serif}
+.lob-go{height:64px;border:0;border-radius:12px;background:#ffd400;color:#111;display:flex;align-items:center;justify-content:center;gap:8px;font:900 italic 30px "Titillium Web",sans-serif;box-shadow:0 6px 0 #b39500,0 14px 30px rgba(0,0,0,.4)}
+.lob-go svg{width:26px;height:26px}.lob-go:active{transform:translateY(3px);box-shadow:0 3px 0 #b39500}
+@media(min-aspect-ratio:5/4){.lob-panel{left:auto;right:24px;bottom:96px;width:380px;margin:0}.lob-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.lob-pilots{left:24px;top:130px}.lob-season{text-align:left;left:24px;top:70px}}
+/* cleaner pages */
+.tk{background:#20232b}.side{background:#1d2028!important;backdrop-filter:none!important}
+
+/* AUTH */
+#auth{position:fixed;inset:0;z-index:95;display:grid;place-items:center;padding:16px;overflow:auto;background:radial-gradient(120% 70% at 50% 20%,#3a1016,#0b0b0e 70%)}
+#auth[hidden],#prof[hidden]{display:none}
+.au-card{width:min(420px,100%);background:#16181f;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:20px;color:#fff;box-shadow:0 30px 60px rgba(0,0,0,.5)}
+.au-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px}.au-logo svg{width:46px;height:30px}.au-logo b{font:900 italic 34px/1 "Titillium Web",sans-serif}
+.au-tabs{display:grid;grid-template-columns:1fr 1fr;background:#0d0f14;border-radius:12px;padding:4px;margin-bottom:14px}
+.au-tabs button{height:42px;border:0;border-radius:9px;background:none;color:#9aa0ab;font:700 16px "Titillium Web",sans-serif}
+.au-tabs button.on{background:#ffd400;color:#111}
+.au-f{display:flex;flex-direction:column;gap:12px}.au-f[hidden]{display:none}
+.au-f label{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:14px;color:#cfd3da}
+.au-f input{height:48px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0d0f14;color:#fff;padding:0 14px;font-size:17px}
+.au-f input:focus{outline:2px solid #ffd400}
+.au-lbl{font-weight:600;font-size:14px;color:#cfd3da}
+.au-av{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.au-av button{aspect-ratio:1;border-radius:12px;border:3px solid transparent;background:#262a33;padding:0;overflow:hidden;display:grid;place-items:center;font:900 22px "Titillium Web",sans-serif;color:#fff}
+.au-av button img{width:100%;height:100%;object-fit:cover;object-position:50% 10%}
+.au-av button.on{border-color:#ffd400}
+.au-err{min-height:1.2em;margin:0;color:#ff6b6b;font-weight:600;font-size:14px}
+.au-btn{height:52px;border:0;border-radius:12px;background:#ffd400;color:#111;font:900 20px "Titillium Web",sans-serif;box-shadow:0 5px 0 #b39500}
+.au-btn:disabled{opacity:.6}
+.au-guest{width:100%;margin-top:12px;height:44px;border:1px solid rgba(255,255,255,.15);border-radius:12px;background:none;color:#cfd3da;font-weight:600}
+.au-note{margin:10px 0 0;font-size:12px;color:#8a909c;text-align:center}
+.au-f h3{margin:0;font:900 24px "Titillium Web",sans-serif}.au-f p{margin:0;color:#cfd3da}
+.au-code{font:900 44px/1 "Titillium Web",sans-serif;letter-spacing:.18em;text-align:center;padding:16px;border-radius:12px;background:#0d0f14;border:2px dashed #ffd400;color:#ffd400}
+.au-row{display:flex;align-items:center;justify-content:space-between;gap:10px}.au-copy{height:40px;padding:0 14px;border-radius:10px;border:0;background:#262a33;color:#fff;font-weight:700}
+#prof{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:rgba(0,0,0,.6);padding:16px}
+.pf-card{width:min(340px,100%);background:#16181f;border-radius:18px;padding:20px;color:#fff;display:flex;flex-direction:column;align-items:center;gap:8px}
+.pf-card img{width:84px;height:84px;border-radius:16px;object-fit:cover;object-position:50% 10%;border:3px solid #ffd400;background:#262a33}
+.pf-card b{font:900 24px "Titillium Web",sans-serif}.pf-card small{color:#9aa0ab}.pf-card .au-btn{width:100%;margin-top:8px}
+
+/* PROFILE */
+.pf-head{display:flex;align-items:center;gap:16px;padding:16px;border-radius:18px;background:linear-gradient(120deg,#3a1016,#1b1d24);margin-bottom:12px}
+.pf-ava{position:relative;width:96px;height:96px;border-radius:22px;border:3px solid #ffd400;padding:0;overflow:visible;background:#262a33;flex:none}
+.pf-ava img{width:100%;height:100%;border-radius:19px;object-fit:cover;object-position:50% 12%}
+.pf-ava i{position:absolute;right:-8px;bottom:-8px;width:32px;height:32px;border-radius:50%;background:#ffd400;color:#111;display:grid;place-items:center;font-style:normal;font-weight:900}
+.pf-head b{display:block;font:900 28px/1.1 "Titillium Web",sans-serif}.pf-head small{color:#b9bec8}
+.pf-pills{display:flex;gap:8px;margin-top:8px}
+.pf-stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin-bottom:12px}
+.pf-stats div{background:#1d2028;border-radius:12px;padding:10px 4px;text-align:center}.pf-stats b{display:block;font:900 22px "Titillium Web",sans-serif}.pf-stats small{color:#9aa0ab;font-size:12px}
+@media(max-width:520px){.pf-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.pf-sec{background:#1d2028;border-radius:16px;padding:16px;margin-bottom:12px}
+.pf-sec h3{margin:0 0 10px;font:900 20px "Titillium Web",sans-serif}.pf-sec p{margin:0 0 10px;color:#cfd3da}
+.pf-lbl{display:block;font-weight:600;font-size:14px;color:#cfd3da;margin-bottom:8px}
+.pf-row{display:flex;gap:8px;margin-top:6px}.pf-row input{flex:1;height:46px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0d0f14;color:#fff;padding:0 12px;font-size:17px}
+.pf-save{height:46px;padding:0 16px;border:0;border-radius:10px;background:#ffd400;color:#111;font:900 16px "Titillium Web",sans-serif}
+.pf-avs{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:8px}
+.pf-avs button{aspect-ratio:1;border-radius:14px;border:3px solid transparent;padding:0;overflow:hidden;color:#fff;font:900 22px "Titillium Web",sans-serif}
+.pf-avs button.on{border-color:#ffd400}.pf-avs img{width:100%;height:100%;object-fit:cover;object-position:50% 10%}
+.pf-avs.big{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
+.pf-up{background:#262a33!important;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:24px!important}.pf-up small{font:600 10px "Albert Sans",sans-serif}
+.pf-msg{min-height:1.2em;margin:8px 0 0!important;color:#2fe06b!important;font-weight:600}
+.priv{border:1px dashed rgba(255,212,0,.4)}
+.pf-lock{margin-top:10px;height:40px;padding:0 14px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:none;color:#cfd3da}
+.pf-out{width:100%;height:48px;border-radius:12px;border:1px solid #ff3b2f;background:none;color:#ff6b6b;font:700 16px "Titillium Web",sans-serif;margin-bottom:12px}
+.pf-empty{text-align:center;padding:40px 0}
+.car-nav{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font:900 30px/1 "Titillium Web",sans-serif;z-index:2}
+.car-nav.prev{left:10px}.car-nav.next{right:10px}
+.car-cap{position:absolute;left:0;right:0;bottom:10px;text-align:center;pointer-events:none;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.6)}
+.car-cap b{display:block;font:900 italic 24px/1 "Titillium Web",sans-serif}.car-cap small{font-size:13px}
+.car-dots{display:flex;justify-content:center;gap:6px;margin-top:6px}.car-dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.4)}.car-dots i.on{background:#ffd400;width:20px;border-radius:4px}
+.priv{display:none!important}
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;font-size:13px;color:var(--mut);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line)}
+.tbl td{padding:12px 10px;border-bottom:1px solid rgba(255,255,255,.07);font-weight:600}
+.tbl td.n{text-align:right;font-variant-numeric:tabular-nums}
+.tbl th.n{text-align:right}
+.tbl .p{font:900 italic 26px/1 "Titillium Web",sans-serif;width:56px}
+.tbl tr.c1 .p{color:var(--gold)}
+.who{display:flex;align-items:center;gap:10px}
+.who i{width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;font:900 15px "Titillium Web",sans-serif;color:#fff;font-style:normal}
+.who img{width:34px;height:34px;border-radius:50%;object-fit:cover;object-position:50% 12%;background:#000;flex:none}
+.champ{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end;margin-bottom:28px}
+.pod{border-radius:18px 18px 0 0;padding:14px;text-align:center;background:linear-gradient(#1b1d24,#0e0f13);border:1px solid var(--line);border-bottom:0}
+.pod b{display:block;font:900 22px/1.1 "Titillium Web",sans-serif;overflow-wrap:anywhere}
+.pod span{color:var(--gold);font:700 18px "Titillium Web",sans-serif}
+.pod .disc{margin:0 auto 8px;width:40px;height:40px;font-size:17px}
+.pod.p1{min-height:190px;background:linear-gradient(#3a2b00,#0e0f13)}.pod.p2{min-height:150px}.pod.p3{min-height:120px}
+.note{color:var(--mut);font-size:14px;margin-top:14px}
+.empty{padding:28px;border-radius:16px;border:1px dashed var(--line);color:var(--mut);text-align:center}
+@media(max-width:600px){.tbl .hide{display:none}.tbl td,.tbl th{padding:10px 6px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="intro">
+  <div class="i-dots"></div>
+  <span class="i-ver">v1.0 · Bakı</span>
+  <div class="i-logo"><svg viewBox="0 0 42 28" aria-hidden="true"><path fill="#E10600" d="M10 0h32l-6 8H4zM6 10h26l-6 8H0zM18 20h14l-6 8H12z"/></svg><b>MİNİ F1</b><span>GRAND PRIX</span></div>
+  <svg class="i-swoosh" viewBox="0 0 400 700" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="sw1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e10600" stop-opacity=".25"/><stop offset=".5" stop-color="#e1243d" stop-opacity=".85"/><stop offset="1" stop-color="#a3172b" stop-opacity=".9"/></linearGradient><linearGradient id="sw2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff3b3b" stop-opacity=".9"/><stop offset="1" stop-color="#ff6b6b" stop-opacity=".6"/></linearGradient></defs><path d="M-40 420 C 80 260, 260 180, 440 120 L 440 200 C 300 250, 180 330, 120 430 C 160 540, 260 620, 440 690 L 440 760 C 220 700, 60 600, -40 520 Z" fill="url(#sw1)"/><path d="M260 330 C 300 230, 360 180, 440 150 L 440 175 C 380 200, 320 250, 285 340 Z" fill="url(#sw2)"/></svg>
+  <img class="i-cars" src="media/intro_cars.png" alt="">
+  <div class="i-tags" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="i-bottom"><b>İPUCU</b><p id="itip">Medium şinlər Soft-dan uzun, Hard-dan qısa ömürlüdür.</p><div class="i-bar"><i id="ibar"></i></div><button class="btn red clip" id="igo" hidden>Toxun və başla</button></div>
+</div>
+<div id="auth" hidden>
+  <div class="au-card">
+    <div class="au-logo"><svg viewBox="0 0 42 28" aria-hidden="true"><path fill="#E10600" d="M10 0h32l-6 8H4zM6 10h26l-6 8H0zM18 20h14l-6 8H12z"/></svg><b>MİNİ F1</b></div>
+    <div class="au-tabs"><button data-m="login" class="on">Daxil ol</button><button data-m="reg">Qeydiyyat</button></div>
+    <form id="auLogin" class="au-f" autocomplete="off">
+      <label>İstifadəçi adı<input id="liUser" maxlength="16" autocapitalize="none" spellcheck="false" placeholder="məs. aysel7"></label>
+      <label>Şəxsi kod<input id="liCode" maxlength="8" autocapitalize="characters" spellcheck="false" placeholder="6 simvol"></label>
+      <p class="au-err" id="liErr"></p>
+      <button class="au-btn" type="submit">Daxil ol</button>
+    </form>
+    <form id="auReg" class="au-f" autocomplete="off" hidden>
+      <label>Pilotun adı<input id="rgName" maxlength="16" placeholder="məs. Aysel"></label>
+      <label>İstifadəçi adı<input id="rgUser" maxlength="16" autocapitalize="none" spellcheck="false" placeholder="kiçik hərf və rəqəm"></label>
+      <div class="au-lbl">Şəkil seç</div><div class="au-av" id="rgAv"></div>
+      <p class="au-err" id="rgErr"></p>
+      <button class="au-btn" type="submit">Qeydiyyatdan keç</button>
+    </form>
+    <div id="auCode" class="au-f" hidden>
+      <h3>Xoş gəldin, <span id="cdName"></span>!</h3>
+      <p>Bu sənin şəxsi kodundur. Növbəti dəfə daxil olmaq üçün <b>istifadəçi adı</b> və bu kod lazımdır. Yaz və ya şəklini çək.</p>
+      <div class="au-code" id="cdCode">------</div>
+      <div class="au-row"><span>İstifadəçi adı: <b id="cdUser"></b></span><button type="button" class="au-copy" id="cdCopy">Kopyala</button></div>
+      <button class="au-btn" type="button" id="cdGo">Yarışa keç</button>
+    </div>
+    <button class="au-guest" id="auGuest" type="button">Qonaq kimi bax · 1 pulsuz yarış</button>
+    <p class="au-note" id="auNote"></p>
+  </div>
+</div>
+<div id="prof" hidden><div class="pf-card"><img id="pfAv" alt=""><b id="pfName"></b><small id="pfUser"></small><button class="au-btn" id="pfOut" type="button">Hesabdan çıx</button><button class="au-guest" id="pfX" type="button">Bağla</button></div></div>
+<div class="gtop" id="gtop">
+  <button class="g-ic" id="gSnd" aria-label="Səs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="w" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></button>
+  <a class="g-me" href="#pilots" id="gMe"><img id="gAva" src="media/intro_cars.png" alt=""><span><b id="gName">Mikail</b><small id="gLvl">Səviyyə 1</small></span></a>
+  <div class="g-pill coin"><i>₼</i><b id="gCoin">0</b></div>
+  <div class="g-pill med"><i>★</i><b id="gStar">0</b></div>
+  <div class="online g-on" id="online"><i></i><span>Oflayn</span></div>
+</div>
+<nav class="gtabs" id="gnav" aria-label="Menyu">
+  <a href="#garage" data-v="garage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 10 12 4l9 6v10H3z"/><path d="M7 20v-6h10v6"/></svg><span>Qaraj</span></a>
+  <a href="#table" data-v="table"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 21h8"/></svg><span>Liqa</span></a>
+  <a href="#home" data-v="home" class="mid"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h2v18H5zM8 4h11l-2.5 4L19 12H8z"/></svg><span>Yarış</span></a>
+  <a href="#race" data-v="race"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17c0-4 3-4 5-6s1-6 5-6 6 3 6 6-3 3-3 6-3 4-7 4-6-1-6-4z"/></svg><span>Treklər</span></a>
+  <a href="#profile" data-v="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Profil</span></a>
+</nav>
+<header class="top">
+  <a class="logo" href="#home" aria-label="Mini F1 ana səhifə">
+    <svg viewBox="0 0 42 28" aria-hidden="true"><path fill="#E10600" d="M10 0h32l-6 8H4zM6 10h26l-6 8H0zM18 20h14l-6 8H12z"/></svg>
+    <b>MİNİ F1</b>
+  </a>
+  <nav class="nav" id="nav">
+    <a href="#home" data-v="home">Ana səhifə</a>
+    <a href="#pilots" data-v="pilots">Pilotlar</a>
+    <a href="#garage" data-v="garage">Qaraj</a>
+    <a href="#race" data-v="race">Yarış</a>
+    <a href="#table" data-v="table">Çempionat</a>
+  </nav>
+  
+  <button class="burger" id="burger" aria-label="Menyu" aria-expanded="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+</header>
+
+<section class="view" id="v-home">
+  <canvas id="lob" aria-label="Qarajda bolid"></canvas>
+  <div class="lob-season"><span>2026 MÖVSÜMÜ</span><b id="lobTrack">Bakı Bulvarı</b></div>
+  <div class="lob-pilots" id="lobPilots"></div>
+  <div class="lob-panel">
+    <div class="lob-stats">
+      <div><small>Lider</small><b id="s-lead">—</b></div>
+      <div><small>Yarış</small><b id="s-races">0</b></div>
+      <div><small>Qızıl</small><b id="s-gold">0</b></div>
+      <div><small>Onlayn</small><b id="s-on">1</b></div>
+    </div>
+    <div class="lob-track" id="lobTrackCard"><canvas id="lobThumb"></canvas><div><small>Növbəti yarış</small><b id="lobTrackName">Bakı Bulvarı</b><span id="lobMode">Menecer · 3 dövrə</span></div><a href="#race" class="lob-change">Dəyiş</a></div>
+    <button class="lob-go" id="lobGo"><span>YARIŞ</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
+</section>
+
+<section class="view" id="v-pilots"><div class="page">
+  <div class="tabs" id="ptabs"><button data-p="mikail">Mikail</button><button data-p="safura">Safura</button></div>
+  <div class="pilot">
+    <div class="pframe"><video id="pvid" autoplay muted loop playsinline></video><div class="fog"></div><div class="num" id="pnum">7</div></div>
+    <div>
+      <div class="loc"><svg viewBox="0 0 30 20" aria-hidden="true"><use href="#az"/></svg>Azərbaycan · Bakı</div>
+      <h2 class="pname reveal" id="pname">Mikail</h2>
+      <p class="pteam">Komanda: <b id="pteam">Mini F1 Bakı</b> · Bolid <b id="pcar">#7</b></p>
+      <div class="nums">
+        <div><small>Çempionat xalı</small><b id="n-pts">0</b></div>
+        <div><small>Qələbə</small><b id="n-win">0</b></div>
+        <div><small>Yarış</small><b id="n-race">0</b></div>
+        <div><small>Ən yaxşı dövrə</small><b id="n-lap">—</b></div>
+      </div>
+      <div class="medals" id="pmed"></div>
+      <div class="row" style="display:flex;gap:12px;flex-wrap:wrap">
+        <button class="btn red clip" id="p-race">Bu pilotla yarış</button>
+        <a class="btn ghost clip" href="#garage">Bolidi düzəlt</a>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<section class="view" id="v-garage"><div class="page">
+  <h2>Qaraj</h2>
+  <p class="sub">Maşını barmağınla sağa-sola sürüşdür: yeni bolid yandan gəlir. Rəngini, dizaynını və şinlərini seç.</p>
+  <div class="gbar"><div class="tabs" id="gtabs" style="margin:0"></div></div>
+  <div class="studio3d" id="studio"><canvas id="gcv"></canvas><div class="car-cap"><b id="carName">Müasir</b><small id="carDesc"></small><div class="car-dots" id="carDots"></div></div></div>
+  <div class="tabs gsec" id="gsec" style="margin-top:14px"><button data-s="car">Bolid</button><button data-s="paint">Rəng</button><button data-s="liv">Dizayn</button><button data-s="tyre">Şinlər</button><button data-s="num">Nömrə və dəbilqə</button><button data-s="eng">Mühərrik</button><button data-s="ers">Batareya</button></div>
+  <div class="gpanel" id="gpanel" aria-live="polite"></div>
+  <p class="note">Bolid modeli: “SI RaceCar RC-12”, müəllif Dahie (sketchfab.com/dahie), lisenziya CC BY 4.0. Rənglər dəyişdirilib, loqolar silinib. Klassik bolid: “Classic Formula 1 Racing Car”, müəllif charlesganza (CGTrader), sadələşdirilib və rəngləri dəyişdirilib. Binalar: “CCity Building Set 1”, müəllif Neberkenezer (sketchfab.com/neberkenezer), CC BY 4.0. “Gecə Körfəzi” treki: “Marina Bay Street Circuit”, müəllif Dave Bored (sketchfab.com/Tyler_Dave), CC BY 4.0, sadələşdirilib. Ağaclar: “Pine Tree” — evolveduk, “Coconut Tree” — gelmi.com.br (rodrigogelmi), “Tree Animate” — RandyGF. Əlavə bolidlər: Ferrari F1 2019 — valvetin; Formula 1 Lotus 49c — dark_igorek; Future Car — 3DHaupt (dennish2010); Honda S800 — Alexios Apokaukos; Vintage Racing Car — Mateusz Woliński (jeandiz). 2006 Renault R26 — Dave Love (Tyler_Dave); 3D şinlər: F1 Tyres Pack 2022 — zordew. TV helikopteri: Chopper — Ameer Studio (uchiha.321abc). Hamısı Sketchfab, CC BY 4.0, sadələşdirilib; loqolar çıxarılıb, adlar dəyişdirilib.</p>
+</div></section>
+
+<section class="view" id="v-race"><div class="page">
+  <h2>Yarış</h2>
+  <p class="sub">Treki seç və start düyməsinə bas. Kim eyni trekdədirsə, birlikdə başlayırsınız.</p>
+  <div class="lobby">
+    <div class="tracks" id="tracks"></div>
+    <aside class="side glass">
+      <div><h3>Pilot</h3><div class="chips" id="lp" style="margin-top:8px"></div>
+        <input type="text" id="gname" maxlength="16" placeholder="Adını yaz" aria-label="Pilotun adı" style="margin-top:8px;display:none"></div>
+      <div><h3>Rejim</h3><div class="chips" id="ldiff" style="margin-top:8px"><button data-d="clash">Menecer · yuxarıdan</button><button data-d="easy">Sürücü · asan</button><button data-d="pro">Sürücü · pro</button></div><small id="dhelp" style="display:block;margin-top:6px;color:var(--mut)"></small></div>
+      <div><h3>Dövrə</h3><div class="chips" id="llaps" style="margin-top:8px"><button data-l="2">2</button><button data-l="3">3</button><button data-l="5">5</button></div></div>
+      <div><h3>Bu trekdə indi</h3><div class="peers" id="lpeers"></div></div>
+      <button class="btn red clip" id="start">Start</button>
+      <small style="color:var(--mut)">Klaviatura: oxlar ilə sür, Boşluq = BOOST, P = Pit Stop, C = kamera. Telefonda ekrandakı düymələr.</small>
+    </aside>
+  </div>
+</div></section>
+
+<section class="view" id="v-profile"><div class="page" id="pfPage"></div></section>
+<section class="view" id="v-table"><div class="page">
+  <h2>Çempionat</h2>
+  <p class="sub">Hər trekdə ən yaxşı nəticən xal gətirir: 1-ci yer 25, 2-ci 18, 3-cü 15…</p>
+  <div class="tabs" id="ttabs"><button data-t="champ">Xallar</button><button data-t="med">Medallar</button><button data-t="rec">Rekordlar</button></div>
+  <div id="tbody"></div>
+  <p class="note" id="tnote"></p>
+</div></section>
+
+<div id="game">
+  <canvas id="gc"></canvas>
+  <div class="speedfx" id="sfx"></div>
+  <div class="hud lapbar"><div class="lb-l" id="lbName">PİLOT</div><div class="lb-c"><small>Dövrə</small><b id="hlap">1/3</b></div><div class="lb-r"><svg id="hwxi" viewBox="0 0 24 24"></svg><span id="hwx">Günəşli</span></div></div>
+  <ol class="hud tower" id="tower"></ol>
+  <div class="hud dcard">
+    <div class="dc-top"><span class="dc-pos" id="hpos">P1</span><b id="dcName">7 MİKAİL</b></div>
+    <div class="dc-mid"><img id="dcImg" alt=""><div class="dc-spd"><b id="hspd">0</b><small>km/s</small></div></div>
+    <div class="bar2 ers"><i id="hers"></i><span>ERS</span><em id="hersT">100%</em></div>
+    <div class="bar2 tyr"><span class="tl" id="htl">S</span><i id="hwear"></i><em id="hwearT">100%</em></div>
+    <div class="dc-time"><span id="htime">0:00.0</span><span id="hbest">Ən yaxşı —</span></div>
+  </div>
+  <canvas id="mini"></canvas>
+  <button class="exit" id="exit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>Çıx</button>
+  <button class="mute" id="bMute" aria-label="Səs"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path id="mwave" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></button>
+  <button class="cam" id="bCam" aria-label="Kameranı dəyiş"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><rect x="3" y="7" width="13" height="11" rx="2"/><path d="m16 11 5-3v9l-5-3z"/></svg><span id="camT">Arxadan</span></button>
+  <div class="lights" id="lights" hidden><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="go" id="go" hidden>GO!</div>
+  <div class="pitbox" id="pitbox" hidden><b>PIT STOP</b><span>Təkərlər dəyişdirilir</span><div class="pb"><i id="pbar"></i></div></div>
+  <div class="hint" id="hint" hidden>Şinlər köhnəlib! <b>PIT STOP</b> düyməsinə bas</div>
+  <div class="rbtns"><button id="bPit" class="pit">Pit Stop</button><button id="bGas" class="gasb" aria-label="Qaz"><b>QAZ</b><small>basılı saxla</small></button><button id="bBoost" class="bst" aria-label="Boost"><svg viewBox="0 0 24 24" fill="#10190c"><path d="M13 2 4 14h7l-2 8 9-12h-7z"/></svg></button></div>
+  <div class="touch l"><button data-k="left" aria-label="Sola"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><button data-k="right" aria-label="Sağa"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button></div>
+  <div class="touch r pro"><button data-k="brake" aria-label="Əyləc"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button><button data-k="gas" aria-label="Qaz"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg></button></div>
+  <div class="team" id="team"></div>
+  <div class="tpick" id="tpick" hidden></div>
+  <div class="res" id="res"><div class="rcard glass"><h3 id="rtitle">P1</h3><div class="pts" id="rpts"></div><ol class="rlist" id="rlist"></ol><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn red clip" id="again">Yenə yarış</button><button class="btn white clip" id="totable">Çempionat</button><button class="btn ghost clip" id="tolobby">Başqa trek</button></div></div></div>
+</div>
+
+  <div class="prerace" id="prerace" hidden><div class="pr-card"><div class="pr-title"><svg viewBox="0 0 42 28" aria-hidden="true"><path fill="#E10600" d="M10 0h32l-6 8H4zM6 10h26l-6 8H0zM18 20h14l-6 8H12z"/></svg>Başlanğıc</div><div class="pr-head"></div><h4>Yarışa başlayacağın şinləri seç</h4><div class="pr-cols"></div><div class="pr-btns"><button class="btn ghost clip pr-x">Geri</button><button class="btn clip pr-go">Yarışa başla</button></div></div></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="az" viewBox="0 0 30 20"><rect width="30" height="6.67" fill="#00b5e2"/><rect y="6.67" width="30" height="6.67" fill="#ef3340"/><rect y="13.33" width="30" height="6.67" fill="#509e2f"/><circle cx="14" cy="10" r="2.6" fill="#fff"/><circle cx="14.7" cy="10" r="2.1" fill="#ef3340"/><path fill="#fff" d="M17.6 8.6l.35 1 .98-.4-.6.86.87.6-1.05.08.13 1.04-.68-.8-.68.8.13-1.04-1.05-.08.87-.6-.6-.86.98.4z"/></symbol></defs></svg>
+
+<script src="three.min.js"></script>
+<script src="GLTFLoader.js"></script>
+<script src="BufferGeometryUtils.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
